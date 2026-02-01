@@ -43,11 +43,7 @@ namespace MedLink.Infrastructure.Persistence.Repositories
 
         }
 
-        public async Task<T?> FindAsync(Expression<Func<T, bool>> predicate)
-        {
-            return await _dbContext.Set<T>().FirstOrDefaultAsync(predicate);
-        }
-
+    
 
 
         public void Delete(T entity)
@@ -76,6 +72,17 @@ namespace MedLink.Infrastructure.Persistence.Repositories
         {
             return SpecificationEvaluator<T>.GetQuery(_dbContext.Set<T>(), spec);
         }
+        public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate)
+        {
+            return await _dbContext.Set<T>()
+                .Where(predicate)
+                .ToListAsync();
+        }
 
+        public async Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate)
+        {
+            return await _dbContext.Set<T>()
+                .FirstOrDefaultAsync(predicate);
+        }
     }
 }

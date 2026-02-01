@@ -2,6 +2,7 @@ using MedLink.Domain.Common;
 using MedLink.Domain.Entities.Appointments;
 using MedLink.Domain.Entities.User;
 using MedLink.Domain.Enums;
+using MedLink.Domain.Identity;
 using NetTopologySuite.Geometries;
 
 namespace MedLink.Domain.Entities.Medical;
@@ -9,6 +10,8 @@ namespace MedLink.Domain.Entities.Medical;
 public class Doctor : BaseEntity
 {
     public string Name { get; set; } = string.Empty;
+    public string? UserId { get; set; }
+    public ApplicationUser? User { get; set; }
 
     public int SpecialtyId { get; set; }
     public Specialization Specialization { get; set; } = null!;

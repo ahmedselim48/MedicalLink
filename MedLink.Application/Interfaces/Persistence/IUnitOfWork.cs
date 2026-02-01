@@ -6,5 +6,6 @@ namespace MedLink.Application.Interfaces.Persistence
     {
         IGenericRepository<T> Repository<T>() where T : BaseEntity;
         Task<int> Complete();
+        IUserProfileRepository UserRepository { get; }
     }
 }

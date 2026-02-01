@@ -1,6 +1,8 @@
+using Mapster;
 using Medical_Team_B.Extensions;
-using MedLink.Domain.Identity;
 using Medical_Team_B.Middlewares;
+using MedicalSystem.API.Hubs;
+using MedLink.Domain.Identity;
 using MedLink.Infrastructure.Persistence.Context;
 using MedLink.Infrastructure.Persistence.Seed;
 using Microsoft.AspNetCore.Identity;
@@ -13,6 +15,9 @@ builder.Services.AddControllers();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplicationServices();
 builder.Services.AddIdentityServices(builder.Configuration);
+builder.Services.AddSwaggerGenJwtAuth();
+builder.Services.AddSignalR();
+builder.Services.AddMapster();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
@@ -44,11 +49,12 @@ app.UseMiddleware<ExceptionMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 app.UseStatusCodePagesWithReExecute("/errors/{0}");
-
+app.MapHub<ChatHub>("/chatHub");
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
