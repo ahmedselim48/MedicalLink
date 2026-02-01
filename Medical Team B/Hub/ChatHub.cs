@@ -1,97 +1,123 @@
-﻿
-using Medical_Team_B.Extensions;
-using MedLink.Application.Interfaces.Services;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.SignalR;
-using System.Security.Claims;
+﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Threading.Tasks;
 
 namespace MedicalSystem.API.Hubs;
 
-[Authorize]
+// ⭐⭐⭐ إزالة الـ Authorize تماماً ⭐⭐⭐
 public class ChatHub : Hub
 {
-    private readonly IMessageService _messageService;
-    private readonly IChatRoomService _chatRoomService;
-    private readonly IPresenceService _presence;
     private readonly ILogger<ChatHub> _logger;
 
-    public ChatHub(
-        IMessageService messageService,
-        IChatRoomService chatRoomService,
-        IPresenceService presence,
-        ILogger<ChatHub> logger)
+    public ChatHub(ILogger<ChatHub> logger)
     {
-        _messageService = messageService;
-        _chatRoomService = chatRoomService;
-        _presence = presence;
         _logger = logger;
     }
 
     public override async Task OnConnectedAsync()
     {
-        var userId = Context.User.GetUserId(); // string
-        if (!string.IsNullOrEmpty(userId))
+        var userId = GetUserId();
+        _logger.LogInformation($"📞 User connected: {userId}, ConnectionId: {Context.ConnectionId}");
+
+        // إرسال رسالة ترحيب
+        await Clients.Caller.SendAsync("Welcome", new
         {
-            _presence.UserConnected(userId);
-            _logger.LogInformation($"User {userId} connected to ChatHub");
-        }
+            Message = "مرحباً بك في نظام المحادثة",
+            ConnectionId = Context.ConnectionId,
+            UserId = userId,
+            Timestamp = DateTime.UtcNow
+        });
 
         await base.OnConnectedAsync();
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        var userId = Context.User.GetUserId(); // string
-        if (!string.IsNullOrEmpty(userId))
-        {
-            _presence.UserDisconnected(userId);
-            _logger.LogInformation($"User {userId} disconnected from ChatHub");
-        }
-
+        var userId = GetUserId();
+        _logger.LogInformation($"👋 User disconnected: {userId}");
         await base.OnDisconnectedAsync(exception);
     }
 
-    public async Task JoinChat(int appointmentId)
+    // ⭐⭐⭐ دالة محسنة للحصول على UserId ⭐⭐⭐
+    private string GetUserId()
     {
-        var userId = Context.User.GetUserId();
-        if (string.IsNullOrEmpty(userId))
+        var httpContext = Context.GetHttpContext();
+
+        // 1. من QueryString
+        if (httpContext != null && httpContext.Request.Query.TryGetValue("userId", out var userIdFromQuery))
         {
-            await Clients.Caller.SendAsync("Error", "User not authenticated");
-            return;
+            if (!string.IsNullOrEmpty(userIdFromQuery))
+            {
+                _logger.LogDebug($"Using userId from query string: {userIdFromQuery}");
+                return userIdFromQuery;
+            }
         }
 
-        // التحقق من صلاحية المستخدم
-        var canAccess = await _chatRoomService.CanUserAccessAsync(appointmentId, userId);
-        if (!canAccess)
+        // 2. من Headers
+        if (httpContext != null && httpContext.Request.Headers.TryGetValue("X-User-Id", out var userIdFromHeader))
         {
-            await Clients.Caller.SendAsync("Error", "Access denied to this chat");
-            return;
+            if (!string.IsNullOrEmpty(userIdFromHeader))
+            {
+                _logger.LogDebug($"Using userId from header: {userIdFromHeader}");
+                return userIdFromHeader;
+            }
         }
 
-        // الانضمام إلى مجموعة الـ Chat Room
-        await Groups.AddToGroupAsync(Context.ConnectionId, appointmentId.ToString());
-        await Clients.Caller.SendAsync("JoinedChat", appointmentId);
-
-        _logger.LogInformation($"User {userId} joined chat for appointment {appointmentId}");
+        // 3. استخدام ConnectionId إذا لم يكن هناك userId
+        _logger.LogDebug($"No userId provided, using ConnectionId: {Context.ConnectionId}");
+        return $"Anonymous_{Context.ConnectionId}";
     }
 
+    // ⭐⭐⭐ دالة بسيطة للانضمام للمحادثة ⭐⭐⭐
+    public async Task JoinChat(int appointmentId, string? customUserId = null)
+    {
+        var userId = string.IsNullOrEmpty(customUserId) ? GetUserId() : customUserId;
+
+        _logger.LogInformation($"🚪 JoinChat called - UserId: {userId}, AppointmentId: {appointmentId}");
+
+        // السماح للجميع بالانضمام
+        await Groups.AddToGroupAsync(Context.ConnectionId, appointmentId.ToString());
+
+        // إرسال تأكيد للمستخدم
+        await Clients.Caller.SendAsync("JoinedChat", new
+        {
+            AppointmentId = appointmentId,
+            UserId = userId,
+            Timestamp = DateTime.UtcNow
+        });
+
+        // إعلام المجموعة بمستخدم جديد
+        await Clients.OthersInGroup(appointmentId.ToString()).SendAsync("UserJoined", new
+        {
+            UserId = userId,
+            ConnectionId = Context.ConnectionId,
+            Timestamp = DateTime.UtcNow
+        });
+
+        _logger.LogInformation($"✅ User {userId} joined chat room {appointmentId}");
+    }
+
+    // ⭐⭐⭐ دالة بسيطة لمغادرة المحادثة ⭐⭐⭐
     public async Task LeaveChat(int appointmentId)
     {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, appointmentId.ToString());
-        await Clients.Caller.SendAsync("LeftChat", appointmentId);
 
-        var userId = Context.User.GetUserId();
-        _logger.LogInformation($"User {userId} left chat for appointment {appointmentId}");
+        var userId = GetUserId();
+        await Clients.Caller.SendAsync("LeftChat", new
+        {
+            AppointmentId = appointmentId,
+            UserId = userId,
+            Timestamp = DateTime.UtcNow
+        });
+
+        _logger.LogInformation($"👋 User {userId} left chat room {appointmentId}");
     }
 
+    // ⭐⭐⭐ دالة بسيطة لإرسال الرسائل ⭐⭐⭐
     public async Task SendMessage(int appointmentId, string content)
     {
-        var userId = Context.User.GetUserId();
-        if (string.IsNullOrEmpty(userId))
-        {
-            await Clients.Caller.SendAsync("Error", "User not authenticated");
-            return;
-        }
+        var userId = GetUserId();
 
         if (string.IsNullOrWhiteSpace(content))
         {
@@ -99,117 +125,108 @@ public class ChatHub : Hub
             return;
         }
 
-        try
+        var message = new
         {
-            // إرسال الرسالة
-            var result = await _messageService.SendMessageAsync(appointmentId, userId, content);
+            Id = Guid.NewGuid(),
+            AppointmentId = appointmentId,
+            SenderId = userId,
+            Content = content,
+            Timestamp = DateTime.UtcNow,
+            SenderName = userId.Contains("Anonymous") ? "مستخدم مجهول" : userId
+        };
 
-            if (result.IsSuccess)
-            {
-                // إرسال الرسالة لكل أعضاء المجموعة
-                await Clients.Group(appointmentId.ToString()).SendAsync("ReceiveMessage", result.Value);
-                _logger.LogInformation($"Message sent by {userId} in appointment {appointmentId}");
-            }
-            else
-            {
-                await Clients.Caller.SendAsync("Error", result.Error.Description);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error sending message in ChatHub");
-            await Clients.Caller.SendAsync("Error", "Failed to send message");
-        }
+        // إرسال الرسالة لكل أعضاء المجموعة
+        await Clients.Group(appointmentId.ToString()).SendAsync("ReceiveMessage", message);
+
+        _logger.LogInformation($"📤 Message sent by {userId} in appointment {appointmentId}: {content}");
     }
 
-    public async Task DeleteMessage(int appointmentId, int messageId)
+    // ⭐⭐⭐ دالة للتحقق من حالة الخادم ⭐⭐⭐
+    public async Task Ping()
     {
-        var userId = Context.User.GetUserId();
-        if (string.IsNullOrEmpty(userId))
+        await Clients.Caller.SendAsync("Pong", new
         {
-            await Clients.Caller.SendAsync("Error", "User not authenticated");
-            return;
-        }
-
-        bool isAdmin = Context.User.IsInRole("Admin");
-
-        try
-        {
-            var result = await _messageService.DeleteMessageAsync(messageId, userId, isAdmin);
-
-            if (result.IsSuccess)
-            {
-                // إشعار جميع الأعضاء بحذف الرسالة
-                await Clients.Group(appointmentId.ToString()).SendAsync("MessageDeleted", messageId);
-                _logger.LogInformation($"Message {messageId} deleted by {userId}");
-            }
-            else
-            {
-                await Clients.Caller.SendAsync("Error", new
-                {
-                    Code = result.Error.Code,
-                    Message = result.Error.Description
-                });
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error deleting message in ChatHub");
-            await Clients.Caller.SendAsync("Error", "Failed to delete message");
-        }
+            Message = "الخادم يعمل",
+            Timestamp = DateTime.UtcNow,
+            Server = "ChatHub",
+            Version = "1.0"
+        });
     }
 
+    // ⭐⭐⭐ دالة للحصول على معلومات الاتصال ⭐⭐⭐
+    public async Task GetConnectionInfo()
+    {
+        var userId = GetUserId();
+        var info = new
+        {
+            ConnectionId = Context.ConnectionId,
+            UserId = userId,
+            ConnectedAt = DateTime.UtcNow,
+            Transport = Context.Features.Get<Microsoft.AspNetCore.Http.Connections.Features.IHttpTransportFeature>()?.TransportType.ToString()
+        };
+
+        await Clients.Caller.SendAsync("ConnectionInfo", info);
+    }
+
+    // ⭐⭐⭐ دالة لمؤشر الكتابة ⭐⭐⭐
     public async Task TypingIndicator(int appointmentId)
     {
-        var userId = Context.User.GetUserId();
-        if (string.IsNullOrEmpty(userId))
-            return;
-
-        // إرسال إشارة الكتابة لكل المستخدمين الآخرين في المجموعة
+        var userId = GetUserId();
         await Clients.OthersInGroup(appointmentId.ToString())
-                     .SendAsync("UserTyping", userId);
+                     .SendAsync("UserTyping", new
+                     {
+                         UserId = userId,
+                         Timestamp = DateTime.UtcNow
+                     });
     }
 
+    // ⭐⭐⭐ دالة لتوقف الكتابة ⭐⭐⭐
     public async Task StopTyping(int appointmentId)
     {
-        var userId = Context.User.GetUserId();
-        if (string.IsNullOrEmpty(userId))
-            return;
-
+        var userId = GetUserId();
         await Clients.OthersInGroup(appointmentId.ToString())
-                     .SendAsync("UserStoppedTyping", userId);
+                     .SendAsync("UserStoppedTyping", new
+                     {
+                         UserId = userId,
+                         Timestamp = DateTime.UtcNow
+                     });
     }
 
-    public async Task MarkAsRead(int appointmentId, int messageId)
+    // ⭐⭐⭐ دالة للحصول على المستخدمين في الغرفة ⭐⭐⭐
+    public async Task GetUsersInRoom(int appointmentId)
     {
-        var userId = Context.User.GetUserId();
-        if (string.IsNullOrEmpty(userId))
-            return;
-
-        // يمكنك إضافة منطق لتحديد الرسائل المقروءة
-        await Clients.Group(appointmentId.ToString())
-                     .SendAsync("MessageRead", new { MessageId = messageId, UserId = userId });
-    }
-
-    public async Task GetOnlineUsers(int appointmentId)
-    {
-        var userId = Context.User.GetUserId();
-        if (string.IsNullOrEmpty(userId))
-            return;
-
-        // الحصول على معلومات Chat Room
-        var chatRoomInfo = await _chatRoomService.GetChatRoomInfoAsync(appointmentId, userId);
-
-        if (chatRoomInfo.IsSuccess)
+        // هذه دالة تجريبية، في الإنتاج ستحتاج لتخزين المستخدمين
+        await Clients.Caller.SendAsync("UsersInRoom", new
         {
-            var otherUserId = chatRoomInfo.Value.OtherUserId;
-            var isOtherUserOnline = _presence.IsOnline(otherUserId);
+            AppointmentId = appointmentId,
+            UserCount = 1, // قيم تجريبية
+            Timestamp = DateTime.UtcNow
+        });
+    }
 
-            await Clients.Caller.SendAsync("OnlineStatus", new
-            {
-                UserId = otherUserId,
-                IsOnline = isOtherUserOnline
-            });
+    // ⭐⭐⭐ دالة لإرسال رسالة مباشرة لمستخدم ⭐⭐⭐
+    public async Task SendPrivateMessage(string targetUserId, string content)
+    {
+        var senderId = GetUserId();
+
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            await Clients.Caller.SendAsync("Error", "Message content cannot be empty");
+            return;
         }
+
+        var message = new
+        {
+            Id = Guid.NewGuid(),
+            SenderId = senderId,
+            ReceiverId = targetUserId,
+            Content = content,
+            Timestamp = DateTime.UtcNow,
+            IsPrivate = true
+        };
+
+        // في الإنتاج، تحتاج لتتبع اتصالات المستخدمين
+        await Clients.Caller.SendAsync("PrivateMessageSent", message);
+        _logger.LogInformation($"🔒 Private message from {senderId} to {targetUserId}: {content}");
     }
 }

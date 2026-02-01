@@ -37,6 +37,7 @@ namespace MedLink.Application.Services
             _userManager = userManager;
             _logger = logger;
         }
+
         public async Task<Result<MessageDto>> SendMessageAsync(int appointmentId, string senderId, string content)
         {
             try
@@ -135,6 +136,7 @@ namespace MedLink.Application.Services
                 _logger.LogError(ex, "Error in GetMessagesAsync");
                 return Result.Failure<List<MessageDto>>(Error.InternalServer("Failed to get messages"));
             }
+
         }
 
 

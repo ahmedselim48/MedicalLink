@@ -11,7 +11,7 @@ namespace Medical_Team_B.Controllers
 {
     [ApiController]
     [Route("api/chat")]
-    [Authorize]
+ [Authorize]
     public class ChatController : ControllerBase
     {
         private readonly IChatRoomService _chatRoomService;
@@ -135,6 +135,35 @@ namespace Medical_Team_B.Controllers
                 return StatusCode(500, Result.Failure(Error.InternalServer("An unexpected error occurred")));
             }
         }
+        [HttpPut("message/{messageId}")]
+        public async Task<IActionResult> UpdateMessage(int messageId, [FromBody] EditMessageDto request)
+        {
+            try
+            {
+                string userId = User.FindFirstValue("uid") ??
+                                User.FindFirstValue("sub") ??
+                                User.FindFirstValue("userId") ??
+                                User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized(Result.Failure(Error.Unauthorized("User not authenticated")));
+
+                if (request == null || string.IsNullOrWhiteSpace(request.NewContent))
+                    return BadRequest(Result.Failure(Error.Validation("Message content is required")));
+
+                var result = await _messageService.EditMessageAsync(messageId, userId, request.NewContent);
+
+                return result.IsSuccess
+                    ? Ok(result.Value)
+                    : result.ToProblem();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error editing message {MessageId}", messageId);
+                return StatusCode(500, Result.Failure(Error.InternalServer("An unexpected error occurred")));
+            }
+        }
+
 
         [HttpDelete("message/{messageId}")]
         public async Task<IActionResult> DeleteMessage(int messageId)

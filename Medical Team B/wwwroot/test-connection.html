@@ -1,0 +1,354 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>✅ ChatHub Test - No Auth</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+    <style>
+        body {
+            font-family: Arial;
+            padding: 20px;
+            background: #f0f2f5;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+            .btn:hover {
+                background: #45a049;
+            }
+
+        .log {
+            background: #1e1e1e;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-family: monospace;
+            height: 300px;
+            overflow-y: auto;
+        }
+
+        .success {
+            color: #4CAF50;
+        }
+
+        .error {
+            color: #f44336;
+        }
+
+        .info {
+            color: #2196F3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✅ ChatHub Test - No Authentication</h1>
+
+        <div>
+            <h3>🔗 1. الاتصال</h3>
+            <input type="text" id="userId" value="ce0c37a2-06ff-4801-aa77-8b51a1897766" placeholder="User ID" style="padding: 8px; width: 300px;">
+            <button class="btn" onclick="connect()">الاتصال بالخادم</button>
+        </div>
+
+        <div>
+            <h3>💬 2. المحادثة</h3>
+            <input type="number" id="roomId" value="9" placeholder="Room ID" style="padding: 8px; width: 100px;">
+            <input type="text" id="message" placeholder="اكتب رسالة..." style="padding: 8px; width: 300px;">
+            <button class="btn" onclick="joinRoom()">انضم للغرفة</button>
+            <button class="btn" onclick="sendMessage()">إرسال رسالة</button>
+        </div>
+
+        <div>
+            <h3>📊 3. معلومات النظام</h3>
+            <button class="btn" onclick="ping()">Ping الخادم</button>
+            <button class="btn" onclick="getInfo()">معلومات الاتصال</button>
+            <button class="btn" onclick="typing()">مؤشر الكتابة</button>
+        </div>
+
+        <div class="log" id="log">
+            <div class="info">🚀 جاهز للبدء...</div>
+        </div>
+    </div>
+
+    <script>
+        let connection = null;
+        let currentRoom = 9;
+
+        function log(msg, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = type;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        async function connect() {
+            const userId = document.getElementById('userId').value;
+
+            if (!userId) {
+                log('⚠️ يرجى إدخال User ID', 'error');
+                return;
+            }
+
+            try {
+                log(`🔗 جاري الاتصال... User ID: ${userId}`, 'info');
+
+                // ⭐⭐⭐ الاتصال مع userId في QueryString ⭐⭐⭐
+                const hubUrl = `https://localhost:7008/chatHub?userId=${encodeURIComponent(userId)}`;
+
+                connection = new signalR.HubConnectionBuilder()
+                    .withUrl(hubUrl, {
+                        skipNegotiation: true,
+                        transport: signalR.HttpTransportType.WebSockets
+                    })
+                    .configureLogging(signalR.LogLevel.Information)
+                    .build();
+
+                // ⭐⭐⭐ إعداد جميع المستمعين ⭐⭐⭐
+                connection.on('Welcome', (data) => {
+                    log(`✅ ${data.Message}`, 'success');
+                    log(`🔑 ConnectionId: ${data.ConnectionId}`, 'info');
+                });
+
+                connection.on('JoinedChat', (data) => {
+                    log(`✅ انضممت للغرفة ${data.AppointmentId}`, 'success');
+                    currentRoom = data.AppointmentId;
+                });
+
+                connection.on('UserJoined', (data) => {
+                    log(`👤 مستخدم جديد انضم: ${data.UserId}`, 'info');
+                });
+
+                connection.on('LeftChat', (data) => {
+                    log(`👋 مستخدم غادر: ${data.UserId}`, 'info');
+                });
+
+                connection.on('ReceiveMessage', (message) => {
+                    log(`📩 ${message.SenderName}: ${message.Content}`, 'info');
+                });
+
+                connection.on('Pong', (data) => {
+                    log(`🏓 ${data.Message} - ${data.Timestamp}`, 'success');
+                });
+
+                connection.on('ConnectionInfo', (info) => {
+                    log(`📊 معلومات الاتصال: ${JSON.stringify(info)}`, 'info');
+                });
+
+                connection.on('UserTyping', (data) => {
+                    log(`✍️ ${data.UserId} يكتب...`, 'info');
+                });
+
+                connection.on('UserStoppedTyping', (data) => {
+                    log(`⏹️ ${data.UserId} توقف عن الكتابة`, 'info');
+                });
+
+                connection.on('Error', (error) => {
+                    log(`❌ خطأ: ${error}`, 'error');
+                });
+
+                // ⭐⭐⭐ بدء الاتصال ⭐⭐⭐
+                await connection.start();
+                log('✅ تم الاتصال بنجاح!', 'success');
+
+            } catch (error) {
+                log(`❌ فشل الاتصال: ${error.message}`, 'error');
+
+                // ⭐⭐⭐ محاولة باستخدام LongPolling إذا فشل WebSocket ⭐⭐⭐
+                if (error.message.includes('WebSocket')) {
+                    log('🔄 جرب الاتصال باستخدام LongPolling...', 'info');
+                    await connectWithLongPolling(userId);
+                }
+            }
+        }
+
+        async function connectWithLongPolling(userId) {
+            try {
+                const hubUrl = `https://localhost:7008/chatHub?userId=${encodeURIComponent(userId)}`;
+
+                connection = new signalR.HubConnectionBuilder()
+                    .withUrl(hubUrl, {
+                        transport: signalR.HttpTransportType.LongPolling
+                    })
+                    .configureLogging(signalR.LogLevel.Information)
+                    .build();
+
+                setupBasicListeners();
+                await connection.start();
+                log('✅ تم الاتصال باستخدام LongPolling', 'success');
+
+            } catch (error) {
+                log(`❌ فشل الاتصال مع LongPolling: ${error.message}`, 'error');
+            }
+        }
+
+        function setupBasicListeners() {
+            connection.on('Welcome', (data) => {
+                log(`✅ ${data.Message}`, 'success');
+            });
+
+            connection.on('ReceiveMessage', (message) => {
+                log(`📩 رسالة: ${message.Content || message}`, 'info');
+            });
+
+            connection.on('Error', (error) => {
+                log(`❌ خطأ: ${error}`, 'error');
+            });
+        }
+
+        async function joinRoom() {
+            if (!connection) {
+                log('⚠️ يرجى الاتصال أولاً', 'error');
+                return;
+            }
+
+            const roomId = parseInt(document.getElementById('roomId').value) || 9;
+
+            try {
+                // ⭐⭐⭐ طريقة 1: بدون userId إضافي ⭐⭐⭐
+                await connection.invoke('JoinChat', roomId);
+                log(`🚪 جاري الانضمام للغرفة ${roomId}...`, 'info');
+
+            } catch (error) {
+                log(`❌ فشل الانضمام: ${error.message}`, 'error');
+
+                // ⭐⭐⭐ طريقة 2: مع userId إضافي ⭐⭐⭐
+                if (error.message.includes('not authenticated')) {
+                    log('🔄 جرب الانضمام مع إرسال userId...', 'info');
+                    try {
+                        const userId = document.getElementById('userId').value;
+                        await connection.invoke('JoinChat', roomId, userId);
+                        log(`✅ انضممت للغرفة ${roomId} مع userId`, 'success');
+                    } catch (error2) {
+                        log(`❌ فشل الانضمام مع userId: ${error2.message}`, 'error');
+                    }
+                }
+            }
+        }
+
+        async function sendMessage() {
+            if (!connection) {
+                log('⚠️ يرجى الاتصال أولاً', 'error');
+                return;
+            }
+
+            const message = document.getElementById('message').value;
+            if (!message) {
+                log('⚠️ يرجى كتابة رسالة', 'error');
+                return;
+            }
+
+            try {
+                await connection.invoke('SendMessage', currentRoom, message);
+                log(`📤 تم إرسال: "${message}"`, 'info');
+                document.getElementById('message').value = '';
+            } catch (error) {
+                log(`❌ فشل إرسال: ${error.message}`, 'error');
+            }
+        }
+
+        async function ping() {
+            if (!connection) {
+                log('⚠️ يرجى الاتصال أولاً', 'error');
+                return;
+            }
+
+            try {
+                await connection.invoke('Ping');
+                log('🏓 تم إرسال Ping', 'info');
+            } catch (error) {
+                log(`❌ فشل Ping: ${error.message}`, 'error');
+            }
+        }
+
+        async function getInfo() {
+            if (!connection) {
+                log('⚠️ يرجى الاتصال أولاً', 'error');
+                return;
+            }
+
+            try {
+                await connection.invoke('GetConnectionInfo');
+            } catch (error) {
+                log(`❌ فشل جلب المعلومات: ${error.message}`, 'error');
+            }
+        }
+
+        async function typing() {
+            if (!connection || !currentRoom) {
+                log('⚠️ يرجى الانضمام لغرفة أولاً', 'error');
+                return;
+            }
+
+            try {
+                await connection.invoke('TypingIndicator', currentRoom);
+                log('✍️ تم إرسال مؤشر الكتابة', 'info');
+
+                // التوقف تلقائياً بعد 2 ثانية
+                setTimeout(async () => {
+                    if (connection) {
+                        try {
+                            await connection.invoke('StopTyping', currentRoom);
+                        } catch (e) { }
+                    }
+                }, 2000);
+
+            } catch (error) {
+                log(`❌ فشل إرسال مؤشر الكتابة: ${error.message}`, 'error');
+            }
+        }
+
+        // ⭐⭐⭐ اختبار تلقائي ⭐⭐⭐
+        window.onload = function () {
+            log('🎯 اضغط "الاتصال بالخادم" للبدء', 'info');
+            log('🎯 أو جرب هذا الكود في Console:', 'info');
+            log('testSignalR()', 'info');
+
+            // دالة مساعدة للاختبار من الـ Console
+            window.testSignalR = async function () {
+                console.log('🚀 بدء اختبار SignalR...');
+                const connection = new signalR.HubConnectionBuilder()
+                    .withUrl('https://localhost:7008/chatHub?userId=test123', {
+                        skipNegotiation: true,
+                        transport: signalR.HttpTransportType.WebSockets
+                    })
+                    .build();
+
+                connection.on('Welcome', console.log);
+                connection.on('ReceiveMessage', console.log);
+
+                try {
+                    await connection.start();
+                    console.log('✅ Connected!');
+                    await connection.invoke('Ping');
+                    console.log('✅ Ping sent');
+                    await connection.invoke('JoinChat', 9);
+                    console.log('✅ Joined room 9');
+                    await connection.invoke('SendMessage', 9, 'Hello from test!');
+                    console.log('✅ Message sent');
+                } catch (error) {
+                    console.error('❌ Error:', error);
+                }
+            };
+        };
+    </script>
+</body>
+</html>

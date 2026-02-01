@@ -1,4 +1,4 @@
-using Mapster;
+﻿using Mapster;
 using Medical_Team_B.Extensions;
 using Medical_Team_B.Middlewares;
 using MedicalSystem.API.Hubs;
@@ -16,7 +16,24 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplicationServices();
 builder.Services.AddIdentityServices(builder.Configuration);
 builder.Services.AddSwaggerGenJwtAuth();
-builder.Services.AddSignalR();
+builder.Services.AddCors(option =>
+        option.AddPolicy("MyPolicy", builder =>
+
+        builder.AllowAnyOrigin()
+        .AllowAnyHeader().AllowAnyMethod()
+
+        )
+
+        );
+builder.Services.AddSignalR(options =>
+{
+    options.EnableDetailedErrors = true; // للتطوير فقط
+    options.MaximumReceiveMessageSize = 1024 * 1024; // 1MB
+})
+.AddJsonProtocol(options =>
+{
+    options.PayloadSerializerOptions.PropertyNamingPolicy = null; // للحفاظ على الحالة
+});
 builder.Services.AddMapster();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
@@ -56,7 +73,9 @@ if (app.Environment.IsDevelopment())
 app.UseStatusCodePagesWithReExecute("/errors/{0}");
 app.MapHub<ChatHub>("/chatHub");
 app.UseHttpsRedirection();
-
+app.UseStaticFiles()
+;
+app.UseCors("MyPolicy");
 app.UseAuthentication();
 
 app.UseAuthorization();

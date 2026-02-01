@@ -10,6 +10,8 @@ namespace MedLink.Application.Interfaces.Services
 {
     public interface IMessageService
     {
+        Task<Result<MessageDto>> EditMessageAsync(int messageId, string currentUserId, string newContent);
+
         Task<Result<MessageDto>> SendMessageAsync(int appointmentId, string senderId, string content);
         Task<Result<List<MessageDto>>> GetMessagesAsync(int appointmentId, int page, int pageSize);
         Task<Result> DeleteMessageAsync(int messageId, string currentUserId, bool isAdmin);
