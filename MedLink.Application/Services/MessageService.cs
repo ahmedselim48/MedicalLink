@@ -185,11 +185,10 @@ namespace MedLink.Application.Services
                 if (message == null)
                     return Result.Failure<MessageDto>(Error.NotFound("Message not found"));
 
-                // التحقق من أن المرسل هو الذي يعدل
                 if (message.SenderId != currentUserId)
                     return Result.Failure<MessageDto>(Error.Forbidden("You cannot edit this message"));
 
-                // تحديث الرسالة
+
                 message.Content = newContent.Trim();
                 message.IsEdited = true;
                
@@ -197,7 +196,6 @@ namespace MedLink.Application.Services
                 _unitOfWork.Repository<Message>().Update(message);
                 await _unitOfWork.Complete();
 
-                // جلب معلومات المرسل
                 var sender = await _userManager.FindByIdAsync(currentUserId);
 
                 var messageDto = new MessageDto

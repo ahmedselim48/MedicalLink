@@ -24,7 +24,7 @@ namespace MedLink.Application.Mapping
             .Map(dest => dest.CreatedAt, src => src.CreatedAt)
             .Map(dest => dest.IsDeleted, src => src.IsDeleted);
 
-            // Appointment → ChatRoomInfoDto (مبسط)
+           
             config.NewConfig<Appointment, ChatRoomInfoDto>()
                 .Map(dest => dest.AppointmentId, src => src.Id)
                 .Map(dest => dest.AppointmentDate, src => src.Schedule != null ? src.Schedule.Date : src.CreatedAt)
