@@ -6,7 +6,7 @@ namespace Domain.ErrorHandling
     {
         public static readonly Error None = new(string.Empty, string.Empty, null);
 
-        // نضيف الـstatic methods هنا
+      
         public static Error Unauthorized(string description)
             => new("Unauthorized", description, StatusCodes.Status401Unauthorized);
 
@@ -15,8 +15,6 @@ namespace Domain.ErrorHandling
 
         public static Error Validation(string description)
             => new("Validation", description, StatusCodes.Status400BadRequest);
-
-
 
         public static Error NotFound(string description)
             => new("NotFound", description, StatusCodes.Status404NotFound);

@@ -36,13 +36,10 @@ namespace Medical_Team_B.Controllers
             {
                 _logger.LogInformation("SendMessage endpoint called - AppointmentId: {AppointmentId}", appointmentId);
 
-                // 🔴 المشكلة: ده بيدينا البريد الإلكتروني مش الـ ID
-                // var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-                // ✅ الحل: جرب أنواع مختلفة
+       
                 string userId = null;
 
-                // الطريقة 1: جرب الـ UID أولاً (هو الأصح في معظم أنظمة JWT)
+       
                 userId = User.FindFirstValue("uid") ??
                          User.FindFirstValue("sub") ??
                          User.FindFirstValue("userId") ??
@@ -68,11 +65,11 @@ namespace Medical_Team_B.Controllers
                     return BadRequest(new { error = "Message content is required" });
                 }
 
-                // تحقق: هل ده إيميل ولا ID؟
+    
                 if (userId.Contains("@"))
                 {
                     _logger.LogWarning("User ID appears to be an email: {UserId}", userId);
-                    // سنتعامل معه كإيميل في الـ Service
+                   
                 }
                 else
                 {
@@ -107,7 +104,7 @@ namespace Medical_Team_B.Controllers
             {
                 string userId = null;
 
-                // الطريقة 1: جرب الـ UID أولاً (هو الأصح في معظم أنظمة JWT)
+               
                 userId = User.FindFirstValue("uid") ??
                          User.FindFirstValue("sub") ??
                          User.FindFirstValue("userId") ??
@@ -179,7 +176,7 @@ namespace Medical_Team_B.Controllers
             {
                 string userId = null;
 
-                // الطريقة 1: جرب الـ UID أولاً (هو الأصح في معظم أنظمة JWT)
+             
                 userId = User.FindFirstValue("uid") ??
                          User.FindFirstValue("sub") ??
                          User.FindFirstValue("userId") ??
@@ -208,7 +205,6 @@ namespace Medical_Team_B.Controllers
             {
                 string userId = null;
 
-                // الطريقة 1: جرب الـ UID أولاً (هو الأصح في معظم أنظمة JWT)
                 userId = User.FindFirstValue("uid") ??
                          User.FindFirstValue("sub") ??
                          User.FindFirstValue("userId") ??

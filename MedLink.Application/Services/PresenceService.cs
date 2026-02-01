@@ -9,19 +9,19 @@ namespace MedLink.Application.Services
 {
     public class PresenceService : IPresenceService
     {
-        private static readonly HashSet<string> OnlineUsers = new(); // ✅ أصبح string
+        private static readonly HashSet<string> OnlineUsers = new(); 
 
-        public void UserConnected(string userId) // ✅ أصبح string
+        public void UserConnected(string userId)
         {
             OnlineUsers.Add(userId);
         }
 
-        public void UserDisconnected(string userId) // ✅ أصبح string
+        public void UserDisconnected(string userId) 
         {
             OnlineUsers.Remove(userId);
         }
 
-        public bool IsOnline(string userId) // ✅ أصبح string
+        public bool IsOnline(string userId) 
         {
             return OnlineUsers.Contains(userId);
         }

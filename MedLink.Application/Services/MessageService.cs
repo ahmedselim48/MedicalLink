@@ -48,11 +48,8 @@ namespace MedLink.Application.Services
                 if (appointment == null)
                     return Result.Failure<MessageDto>(Error.NotFound("Appointment not found"));
 
-                // 🔴 مشكلة هنا: تستخدم FindByEmailAsync مع الـ ID
-                // var sender = await _userManager.FindByEmailAsync(senderId); // ❌ غلط
-
-                // ✅ استخدم FindByIdAsync
-                var sender = await _userManager.FindByIdAsync(senderId); // ✅ صح
+             
+                var sender = await _userManager.FindByIdAsync(senderId); 
                 if (sender == null)
                     return Result.Failure<MessageDto>(Error.NotFound("Sender not found"));
 
@@ -66,7 +63,7 @@ namespace MedLink.Application.Services
                 var message = new Message
                 {
                     ChatRoomId = chatRoomResult.Value.Id,
-                    SenderId = sender.Id, // استخدم sender.Id وليس senderId
+                    SenderId = sender.Id, 
                     Content = content.Trim(),
                     CreatedAt = DateTime.UtcNow,
                     IsDeleted = false,
@@ -108,9 +105,6 @@ namespace MedLink.Application.Services
 
                 var spec = new MessageWithSenderSpec(chatRoomResult.Value.Id, page, pageSize);
                 var messages = await _unitOfWork.Repository<Message>().GetAllWithSpecAsync(spec);
-
-                // ❗ بدل ما تعمل FindByIdAsync جوه loop (كارثي)
-                // هنجمع كل الـ Ids ونجيبهم Query واحدة
                 var senderIds = messages.Select(m => m.SenderId).Distinct().ToList();
                 var senders = await _userManager.Users
                         .Where(u => senderIds.Contains(u.Id))
@@ -156,11 +150,10 @@ namespace MedLink.Application.Services
                 if (message == null)
                     return Result.Failure(Error.NotFound("Message not found"));
 
-                // التحقق من الصلاحيات
+         
                 if (!isAdmin && message.SenderId != currentUserId)
                     return Result.Failure(Error.Forbidden("You cannot delete this message"));
 
-                // حذف ناعم
                 message.IsDeleted = true;
        
 
@@ -229,8 +222,6 @@ namespace MedLink.Application.Services
         {
             try
             {
-                // هنا يمكنك إضافة منطق لتحديد الرسائل كمقروءة
-                // إذا كنت تحتاج هذه الخاصية
                 return Result.Success();
             }
             catch (Exception ex)

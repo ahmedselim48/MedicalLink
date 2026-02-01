@@ -42,7 +42,7 @@ namespace MedLink.Application.Services
         {
             try
             {
-                // البحث عن الشات روم الحالي
+    
                 var spec = new ChatRoomByAppointmentSpec(appointmentId);
                 var chatRoom = await _unitOfWork.Repository<ChatRoom>()
                     .GetEntityWithAsync(spec);
@@ -50,7 +50,7 @@ namespace MedLink.Application.Services
                 if (chatRoom != null)
                     return Result.Success(chatRoom);
 
-                // التحقق من وجود الموعد
+        
                 var appointment = await _unitOfWork.Repository<Appointment>()
                     .GetByIdAsync(appointmentId);
 
@@ -58,7 +58,6 @@ namespace MedLink.Application.Services
                     return Result.Failure<ChatRoom>(
                         Error.NotFound("Appointment not found"));
 
-                // إنشاء شات روم جديد
                 chatRoom = new ChatRoom
                 {
                     AppointmentId = appointmentId,
@@ -87,29 +86,25 @@ namespace MedLink.Application.Services
                 if (appointment == null)
                     return false;
 
-                var user = await _userManager.FindByIdAsync(userId); // ✅ استخدام FindByIdAsync
+                var user = await _userManager.FindByIdAsync(userId); 
                 if (user == null)
                     return false;
 
-                // 1. هل المستخدم هو المريض؟
                 bool isPatient = appointment.UserId == userId;
 
-                // 2. هل المستخدم هو الطبيب؟
                 bool isDoctor = false;
 
-                // بما أن Doctor مافيهاش UserId، هنجيب الطبيب من Appointment
                 var doctor = await _unitOfWork.Repository<Doctor>().GetByIdAsync(appointment.DoctorId);
                 if (doctor != null)
                 {
-                    // نحتاج طريقة لمعرفة إذا كان هذا المستخدم هو الطبيب
-                    // الحل المؤقت: لو الأسماء أو الإيميلات متطابقة
+              
                     if (user.Id == doctor.UserId || user.Id == doctor.Id.ToString())
                     {
                         isDoctor = true;
                     }
                 }
 
-                // 3. هل المستخدم هو Admin؟
+ 
                 bool isAdmin = await _userManager.IsInRoleAsync(user, "Admin");
 
                 return isPatient || isDoctor || isAdmin;
@@ -132,17 +127,15 @@ namespace MedLink.Application.Services
                     return Result.Failure<ChatRoomInfoDto>(
                         Error.NotFound("Appointment not found"));
 
-                // التحقق من الصلاحيات
+        
                 if (!await CanUserAccessAsync(appointmentId, currentUserId))
                     return Result.Failure<ChatRoomInfoDto>(
                         Error.Forbidden("Access denied"));
 
-                // الحصول على أو إنشاء الشات روم
                 var chatRoomResult = await GetOrCreateChatRoomAsync(appointmentId);
                 if (chatRoomResult.IsFailure)
                     return Result.Failure<ChatRoomInfoDto>(chatRoomResult.Error);
 
-                // تحديد المستخدم الآخر
                 string otherUserId;
                 string otherUserName;
 
@@ -150,7 +143,7 @@ namespace MedLink.Application.Services
 
                 if (isPatient)
                 {
-                    // المريض يتحدث مع الطبيب
+              
                     var doctor = await _unitOfWork.Repository<Doctor>()
                         .GetByIdAsync(appointment.DoctorId);
 
@@ -158,7 +151,7 @@ namespace MedLink.Application.Services
                         return Result.Failure<ChatRoomInfoDto>(
                             Error.NotFound("Doctor not found"));
 
-                    // إذا كان الطبيب مرتبط بمستخدم
+           
                     if (!string.IsNullOrEmpty(doctor.UserId))
                     {
                         otherUserId = doctor.UserId;
@@ -167,14 +160,14 @@ namespace MedLink.Application.Services
                     }
                     else
                     {
-                        // إذا لم يكن مرتبط بمستخدم، استخدم معلومات الطبيب مباشرة
+                       
                         otherUserId = $"doctor_{doctor.Id}";
                         otherUserName = doctor.Name ?? "Doctor";
                     }
                 }
                 else
                 {
-                    // الطبيب يتحدث مع المريض
+           
                     otherUserId = appointment.UserId;
                     var patientUser = await _userManager.FindByIdAsync(otherUserId);
                     otherUserName = patientUser?.FullName ?? appointment.PatientName ?? "Patient";
@@ -205,15 +198,14 @@ namespace MedLink.Application.Services
                 if (user == null)
                     return Result.Failure<List<ChatRoomDto>>(Error.NotFound("User not found"));
 
-                // جلب جميع المواعيد الخاصة بالمستخدم
+             
                 List<Appointment> appointments = new();
 
-                // المواعيد التي يكون فيها المستخدم هو المريض
+              
                 var patientAppointments = await _unitOfWork.Repository<Appointment>()
                     .FindAsync(a => a.UserId == userId);
                 appointments.AddRange(patientAppointments);
 
-                // المواعيد التي يكون فيها المستخدم هو الطبيب
                 var doctor = await _unitOfWork.Repository<Doctor>()
                     .FirstOrDefaultAsync(d => d.UserId == userId);
 
@@ -236,7 +228,7 @@ namespace MedLink.Application.Services
 
                         if (chatRoomInfo.IsSuccess)
                         {
-                            // جلب آخر رسالة
+          
                             var messages = await _unitOfWork.Repository<Message>()
                                 .FindAsync(m => m.ChatRoomId == chatRoomResult.Value.Id && !m.IsDeleted);
 
@@ -252,7 +244,7 @@ namespace MedLink.Application.Services
                                 OtherUserName = chatRoomInfo.Value.OtherUserName,
                                 LastMessage = lastMessage?.Content,
                                 LastMessageTime = lastMessage?.CreatedAt,
-                                UnreadCount = 0 // يمكنك إضافة منطق لحساب الرسائل غير المقروءة
+                                UnreadCount = 0 
                             });
                         }
                     }
