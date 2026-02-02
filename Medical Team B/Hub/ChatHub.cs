@@ -5,117 +5,182 @@ using System.Threading.Tasks;
 
 namespace MedicalSystem.API.Hubs;
 
+using Domain.ErrorHandling;
+using Mapster;
+using MedLink.Application.DTOs.Chat;
+using MedLink.Domain.Entities.Appointments;
+using MedLink.Domain.Entities.Chat;
+using MedLink.Infrastructure.Persistence.Context;
+using MedLink.Infrastructure.Persistence.Seed;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+using System.Text.Json;
 using System.Threading.Tasks;
 
+
+
+[Authorize]
 public class ChatHub : Hub
 {
-    private readonly ILogger<ChatHub> _logger;
+    private readonly ApplicationDbContext _context;
 
-    public ChatHub(ILogger<ChatHub> logger)
+    public ChatHub(ApplicationDbContext context)
     {
-        _logger = logger;
+        _context = context;
     }
 
-    public override async Task OnConnectedAsync()
-    {
-        var userId = GetUserId();
-        _logger.LogInformation($"📞 User connected: {userId}, ConnectionId: {Context.ConnectionId}");
+    // =========================
+    // Helpers
+    // =========================
 
-        // إرسال رسالة ترحيب
-        await Clients.Caller.SendAsync("Welcome", new
+    private void Throw(Error error)
+    {
+        var payload = new
         {
-            Message = "مرحباً بك في نظام المحادثة",
-            ConnectionId = Context.ConnectionId,
-            UserId = userId,
-            Timestamp = DateTime.UtcNow
-        });
+            error.Code,
+            error.Description,
+            error.StatusCode
+        };
 
-        await base.OnConnectedAsync();
+        throw new HubException(JsonSerializer.Serialize(payload));
     }
 
-    public override async Task OnDisconnectedAsync(Exception? exception)
-    {
-        var userId = GetUserId();
-        _logger.LogInformation($" User disconnected: {userId}");
-        await base.OnDisconnectedAsync(exception);
-    }
     private string GetUserId()
     {
-        var httpContext = Context.GetHttpContext();
+        var userId =
+            Context.User?.FindFirstValue("uid") ??
+            Context.User?.FindFirstValue("sub") ??
+            Context.User?.FindFirstValue("userId") ??
+            Context.User?.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        // 1. من QueryString
-        if (httpContext != null && httpContext.Request.Query.TryGetValue("userId", out var userIdFromQuery))
+        if (string.IsNullOrEmpty(userId))
+            Throw(Error.Unauthorized("User not authenticated"));
+
+        return userId!;
+    }
+
+
+    // =========================
+    // Join Appointment Room
+    // =========================
+
+    public async Task JoinAppointmentRoom(int appointmentId)
+    {
+        var userId = GetUserId();
+
+        var appointment = await _context.Appointments
+            .AsNoTracking()
+            .FirstOrDefaultAsync(a =>
+                a.Id == appointmentId &&
+                (a.UserId == userId || a.DoctorId.ToString() == userId));
+
+        if (appointment == null)
+            Throw(EntityError<Appointment>.NotFound("Appointment access denied"));
+
+        await Groups.AddToGroupAsync(Context.ConnectionId, appointmentId.ToString());
+    }
+
+    // =========================
+    // Send Message
+    // =========================
+
+    public async Task SendMessage(int appointmentId, SendMessageDto dto)
+    {
+        var userId = GetUserId();
+
+        if (dto == null || string.IsNullOrWhiteSpace(dto.Content))
+            Throw(Error.Validation("Message content is required"));
+
+        var chatRoom = await _context.ChatRooms
+            .Include(c => c.Appointment)
+            .FirstOrDefaultAsync(c => c.AppointmentId == appointmentId);
+
+        if (chatRoom == null)
+            Throw(EntityError<ChatRoom>.NotFound());
+
+        if (chatRoom.Appointment!.UserId != userId &&
+            chatRoom.Appointment.DoctorId.ToString() != userId)
+            Throw(Error.Forbidden("You are not allowed to send messages in this chat"));
+
+        var message = new Message
         {
-            if (!string.IsNullOrEmpty(userIdFromQuery))
+            ChatRoomId = chatRoom.Id,
+            SenderId = userId,
+            Content = dto.Content
+        };
+
+        _context.Messages.Add(message);
+        await _context.SaveChangesAsync();
+
+        var result = message.Adapt<MessageDto>();
+
+        await Clients.Group(appointmentId.ToString())
+            .SendAsync("ReceiveMessage", result);
+    }
+
+    // =========================
+    // Edit Message
+    // =========================
+
+    public async Task EditMessage(int messageId, EditMessageDto dto)
+    {
+        var userId = GetUserId();
+
+        if (dto == null || string.IsNullOrWhiteSpace(dto.NewContent))
+            Throw(Error.Validation("Message content is required"));
+
+        var message = await _context.Messages
+            .Include(m => m.ChatRoom)
+            .ThenInclude(c => c.Appointment)
+            .FirstOrDefaultAsync(m => m.Id == messageId);
+
+        if (message == null || message.IsDeleted)
+            Throw(EntityError<Message>.NotFound());
+
+        if (message.SenderId != userId)
+            Throw(Error.Forbidden("You cannot edit this message"));
+
+        message.Content = dto.NewContent;
+        message.IsEdited = true;
+
+        await _context.SaveChangesAsync();
+
+        await Clients.Group(message.ChatRoom.AppointmentId!.ToString())
+            .SendAsync("MessageEdited", new
             {
-                _logger.LogDebug($"Using userId from query string: {userIdFromQuery}");
-                return userIdFromQuery;
-            }
-        }
-
-        // 2. من Headers
-        if (httpContext != null && httpContext.Request.Headers.TryGetValue("X-User-Id", out var userIdFromHeader))
-        {
-            if (!string.IsNullOrEmpty(userIdFromHeader))
-            {
-                _logger.LogDebug($"Using userId from header: {userIdFromHeader}");
-                return userIdFromHeader;
-            }
-        }
-        _logger.LogDebug($"No userId provided, using ConnectionId: {Context.ConnectionId}");
-        return $"Anonymous_{Context.ConnectionId}";
+                message.Id,
+                message.Content,
+                message.IsEdited
+            });
     }
-    public async Task JoinRoom(string appointmentId)
+
+    // =========================
+    // Delete Message
+    // =========================
+
+    public async Task DeleteMessage(int messageId)
     {
-        await Groups.AddToGroupAsync(Context.ConnectionId, appointmentId);
-        await Clients.Caller.SendAsync("ReceiveSystemMessage", $"You joined room {appointmentId}");
+        var userId = GetUserId();
+
+        var message = await _context.Messages
+            .Include(m => m.ChatRoom)
+            .ThenInclude(c => c.Appointment)
+            .FirstOrDefaultAsync(m => m.Id == messageId);
+
+        if (message == null)
+            Throw(EntityError<Message>.NotFound());
+
+        if (message.SenderId != userId)
+            Throw(Error.Forbidden("You cannot delete this message"));
+
+        message.IsDeleted = true;
+        await _context.SaveChangesAsync();
+
+        await Clients.Group(message.ChatRoom.AppointmentId!.ToString())
+            .SendAsync("MessageDeleted", messageId);
     }
-
-    public async Task LeaveRoom(string appointmentId)
-    {
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, appointmentId);
-        await Clients.Caller.SendAsync("ReceiveSystemMessage", $"You left room {appointmentId}");
-    }
-
-    public async Task SendMessage(string appointmentId, string senderId, string receiverId, string content)
-    {
-        var message = new
-        {
-            MessageId = System.Guid.NewGuid().ToString(),
-            SenderId = senderId,
-            ReceiverId = receiverId,
-            Content = content,
-            AppointmentId = appointmentId
-        };
-
-        await Clients.Group(appointmentId).SendAsync("ReceiveMessage", message);
-    }
-
-    public async Task UpdateMessage(string appointmentId, string messageId, string newContent, string senderId)
-    {
-        var updatedMessage = new
-        {
-            MessageId = messageId,
-            SenderId = senderId,
-            Content = newContent,
-            AppointmentId = appointmentId
-        };
-
-        await Clients.Group(appointmentId).SendAsync("MessageUpdated", updatedMessage);
-    }
-
-    public async Task DeleteMessage(string appointmentId, string messageId, string senderId)
-    {
-        var deletedMessage = new
-        {
-            MessageId = messageId,
-            SenderId = senderId,
-            AppointmentId = appointmentId
-        };
-
-    
-        await Clients.Group(appointmentId).SendAsync("MessageDeleted", deletedMessage);
-    }
-
 }
+
+
