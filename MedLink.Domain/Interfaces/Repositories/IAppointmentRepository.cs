@@ -1,7 +1,7 @@
 ﻿
 using MedLink.Domain.Entities.Appointments;
 
-namespace MedLink_Application.Interfaces.Repositories
+namespace MedLink.Application.Interfaces.Repositories
 {
     public interface IAppointmentRepository
     {

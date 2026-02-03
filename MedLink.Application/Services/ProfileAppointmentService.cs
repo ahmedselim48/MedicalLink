@@ -1,16 +1,11 @@
-using MedLink.Domain.Entities.Appointments;
-using MedLink.Domain.Enums;
 using MedLink.Application.DTOs.UserProfile;
 using MedLink.Application.Interfaces.Persistence;
 using MedLink.Application.Interfaces.Services;
-using MedLink.Application.Specifications;
-using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using MedLink.Application.Specifications.Appointments;
+using MedLink.Domain.Entities.Appointments;
+using MedLink.Domain.Enums;
 
-namespace MedLink.Infrastructure.Services
+namespace MedLink.Application.Services
 {
     public class ProfileAppointmentService : IProfileAppointmentService
     {
@@ -140,7 +135,7 @@ namespace MedLink.Infrastructure.Services
                     Status = a.Status,
                     CanCancel = canCancel
                 };
-                }).ToList();
+            }).ToList();
 
             return new PagedResult<AppointmentListItemDto>
             {

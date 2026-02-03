@@ -1,266 +1,152 @@
-﻿using MediatR;
-using MedLink_Application.Commands;
-using MedLink_Application.Queries;
-using MedLink_Application.Responses;
+﻿using MedLink.Application.DTOs.Appointments;
+using MedLink.Application.DTOs.Medical;
+using MedLink.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 
 namespace Medical_Team_B.Controllers
 {
-     [Authorize]
-    //[AllowAnonymous]
+    /// <summary>
+    /// Manages appointment operations.
+    /// </summary>
+    [Authorize]
     public class AppointmentsController : BaseApiController
     {
-        private readonly IMediator _mediator;
+        private readonly IAppointmentService _appointmentService;
 
-        public AppointmentsController(IMediator mediator)
+        public AppointmentsController(IAppointmentService appointmentService)
         {
-            _mediator = mediator;
+            _appointmentService = appointmentService;
         }
 
-      
-        // 1. Get Available Slots
-        // GET: api/appointments/available-slots?doctorId=1&date=2026-02-01
-        
+        /// <summary>
+        /// Retrieves available time slots for a doctor.
+        /// </summary>
+        /// <param name="doctorId">The ID of the doctor.</param>
+        /// <param name="date">Optional date to filter slots.</param>
         [HttpGet("available-slots")]
         [AllowAnonymous]
         public async Task<ActionResult<List<DoctorAvailabilityDto>>> GetAvailableSlots(
             [FromQuery] int doctorId,
-            [FromQuery] DateTime date)
+            [FromQuery] DateTime? date)
         {
-            var query = new GetAvailableSlotsQuery(doctorId, date);
-            var slots = await _mediator.Send(query);
+            var slots = await _appointmentService.GetAvailableSlotsAsync(doctorId, date);
             return Ok(slots);
         }
 
-       
-        // 2. Create Appointment
-        // POST: api/appointments
-       
+        /// <summary>
+        /// Creates a new appointment.
+        /// </summary>
+        /// <param name="request">The appointment creation request.</param>
         [HttpPost]
-        public async Task<ActionResult<AppointmentDto>> CreateAppointment([FromBody] CreateAppointmentCommand command)
+        public async Task<ActionResult<AppointmentDto>> CreateAppointment([FromBody] CreateAppointmentRequest request)
         {
-            var userId = User.FindFirst("sub")?.Value ?? User.FindFirst("uid")?.Value;
-            if (string.IsNullOrEmpty(userId))
-                return Unauthorized("User not authenticated");
+            request.BookedByUserId = UserId;
 
-            command.BookedByUserId = userId;
-
-            var appointment = await _mediator.Send(command);
+            var appointment = await _appointmentService.CreateAppointmentAsync(request);
             return CreatedAtAction(nameof(GetAppointmentById), new { id = appointment.Id }, appointment);
         }
 
-      
-        /// 3. Get Appointment By ID
-        /// GET: api/appointments/{id}
-   
+        /// <summary>
+        /// Retrieves appointment details by ID.
+        /// </summary>
+        /// <param name="id">The ID of the appointment.</param>
         [HttpGet("{id}")]
         public async Task<ActionResult<AppointmentDto>> GetAppointmentById(int id)
         {
-            try
-            {
-                var query = new GetAppointmentByIdQuery(id);
-                var appointment = await _mediator.Send(query);
-                return Ok(appointment);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(ex.Message);
-            }
+            var appointment = await _appointmentService.GetAppointmentByIdAsync(id);
+            return Ok(appointment);
         }
 
-        /// 4. Update Appointment (NEW!)
-        /// PUT: api/appointments/{id}
+        /// <summary>
+        /// Updates an existing appointment.
+        /// </summary>
+        /// <param name="id">The ID of the appointment to update.</param>
+        /// <param name="request">The update request details.</param>
         [HttpPut("{id}")]
         public async Task<ActionResult<AppointmentDto>> UpdateAppointment(
             int id,
             [FromBody] UpdateAppointmentRequest request)
         {
-            try
-            {
-                var userId = User.FindFirst("sub")?.Value ?? User.FindFirst("uid")?.Value;
-                if (string.IsNullOrEmpty(userId))
-                    return Unauthorized("User not authenticated");
+            // Set user ID strictly from token for security
+            request.UpdatedByUserId = UserId;
 
-                var command = new UpdateAppointmentCommand
-                {
-                    AppointmentId = id,
-                    PatientName = request.PatientName,
-                    PatientPhone = request.PatientPhone,
-                    PatientEmail = request.PatientEmail,
-                    Notes = request.Notes,
-                    UpdatedByUserId = userId
-                };
-
-                var appointment = await _mediator.Send(command);
-                return Ok(appointment);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Forbid(ex.Message);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var appointment = await _appointmentService.UpdateAppointmentAsync(id, request);
+            return Ok(appointment);
         }
 
-      
-        // 5. Get Appointments By Doctor
-        // GET: api/appointments/doctor/{doctorId}?date=2026-02-01
-        
+        /// <summary>
+        /// Retrieves appointments for a specific doctor.
+        /// </summary>
+        /// <param name="doctorId">The ID of the doctor.</param>
+        /// <param name="date">Optional date to filter appointments.</param>
         [HttpGet("doctor/{doctorId}")]
         [AllowAnonymous]
         public async Task<ActionResult<List<AppointmentDto>>> GetAppointmentsByDoctor(
             int doctorId,
             [FromQuery] DateTime? date = null)
         {
-            var query = new GetAppointmentsByDoctorQuery(doctorId, date);
-            var appointments = await _mediator.Send(query);
+            var appointments = await _appointmentService.GetAppointmentsByDoctorAsync(doctorId, date);
             return Ok(appointments);
         }
 
-    
-        /// 6. Get My Appointments
-        /// GET: api/appointments/my-appointments
-      
+        /// <summary>
+        /// Retrieves appointments for the current user.
+        /// </summary>
         [HttpGet("my-appointments")]
         public async Task<ActionResult<List<AppointmentDto>>> GetMyAppointments()
         {
-            var userId = User.FindFirst("sub")?.Value ?? User.FindFirst("uid")?.Value;
-            if (string.IsNullOrEmpty(userId))
-                return Unauthorized("User not authenticated");
-
-            var query = new GetAppointmentsByUserQuery(userId);
-            var appointments = await _mediator.Send(query);
+            var appointments = await _appointmentService.GetMyAppointmentsAsync(UserId);
             return Ok(appointments);
         }
 
-      
-        /// 7. Get Upcoming Appointments (NEW!)
-        /// GET: api/appointments/upcoming
+        /// <summary>
+        /// Retrieves upcoming appointments for the current user.
+        /// </summary>
         [HttpGet("upcoming")]
         public async Task<ActionResult<List<AppointmentDto>>> GetUpcomingAppointments()
         {
-            var userId = User.FindFirst("sub")?.Value ?? User.FindFirst("uid")?.Value;
-            if (string.IsNullOrEmpty(userId))
-                return Unauthorized("User not authenticated");
-
-            var query = new GetUpcomingAppointmentsQuery(userId);
-            var appointments = await _mediator.Send(query);
+            var appointments = await _appointmentService.GetUpcomingAppointmentsAsync(UserId);
             return Ok(appointments);
         }
 
-       
-        /// 8. Reschedule Appointment (NEW!)
-        /// POST: api/appointments/{id}/reschedule
-       
+
+        /// <summary>
+        /// Reschedules an existing appointment.
+        /// </summary>
+        /// <param name="id">The ID of the appointment.</param>
+        /// <param name="request">The reschedule request details.</param>
         [HttpPost("{id}/reschedule")]
         public async Task<ActionResult<AppointmentDto>> RescheduleAppointment(
             int id,
             [FromBody] RescheduleAppointmentRequest request)
         {
-            try
-            {
-                var userId = User.FindFirst("sub")?.Value ?? User.FindFirst("uid")?.Value;
-                if (string.IsNullOrEmpty(userId))
-                    return Unauthorized("User not authenticated");
-
-                var command = new RescheduleAppointmentCommand
-                {
-                    AppointmentId = id,
-                    NewScheduleId = request.NewScheduleId,
-                    RescheduledByUserId = userId
-                };
-
-                var appointment = await _mediator.Send(command);
-                return Ok(appointment);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Forbid(ex.Message);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var appointment = await _appointmentService.RescheduleAppointmentAsync(id, request.NewScheduleId, UserId);
+            return Ok(appointment);
         }
 
-        /// 9. Cancel Appointment
-        /// POST: api/appointments/{id}/cancel
+        /// <summary>
+        /// Cancels an appointment.
+        /// </summary>
+        /// <param name="id">The ID of the appointment.</param>
+        /// <param name="request">The cancellation request details.</param>
         [HttpPost("{id}/cancel")]
         public async Task<ActionResult> CancelAppointment(int id, [FromBody] CancelAppointmentRequest request)
         {
-            try
-            {
-                var userId = User.FindFirst("sub")?.Value ?? User.FindFirst("uid")?.Value;
-                if (string.IsNullOrEmpty(userId))
-                    return Unauthorized("User not authenticated");
-
-                var command = new CancelAppointmentCommand
-                {
-                    AppointmentId = id,
-                    Reason = request.Reason,
-                    CancelledByUserId = userId
-                };
-
-                await _mediator.Send(command);
-                return Ok(new { message = "Appointment cancelled successfully" });
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Forbid(ex.Message);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            await _appointmentService.CancelAppointmentAsync(id, request.Reason, UserId);
+            return Ok(new { message = "Appointment cancelled successfully" });
         }
 
-        /// 10. Complete Appointment (NEW!)
-        /// POST: api/appointments/{id}/complete
+        /// <summary>
+        /// Marks an appointment as completed.
+        /// </summary>
+        /// <param name="id">The ID of the appointment.</param>
         [HttpPost("{id}/complete")]
         public async Task<ActionResult> CompleteAppointment(int id)
         {
-            try
-            {
-                var userId = User.FindFirst("sub")?.Value ?? User.FindFirst("uid")?.Value;
-                if (string.IsNullOrEmpty(userId))
-                    return Unauthorized("User not authenticated");
-
-                var command = new CompleteAppointmentCommand
-                {
-                    AppointmentId = id,
-                    CompletedByUserId = userId
-                };
-
-                await _mediator.Send(command);
-                return Ok(new { message = "Appointment completed successfully" });
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            await _appointmentService.CompleteAppointmentAsync(id, UserId);
+            return Ok(new { message = "Appointment completed successfully" });
         }
 
     }

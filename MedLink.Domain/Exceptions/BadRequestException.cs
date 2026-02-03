@@ -1,5 +1,3 @@
-using System;
-
 namespace MedLink.Domain.Exceptions
 {
     public class BadRequestException : Exception

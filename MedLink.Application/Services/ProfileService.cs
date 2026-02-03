@@ -1,15 +1,9 @@
-﻿using MedLink.Application.Interfaces.Persistence;
+﻿using MedLink.Application.DTOs.UserProfile;
+using MedLink.Application.Interfaces.Persistence;
 using MedLink.Application.Interfaces.Services;
 using MedLink.Domain.Entities.User;
 using MedLink.Domain.Identity;
-using MedLink.Application.DTOs.UserProfile;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MedLink.Application.Services
 {
@@ -117,6 +111,6 @@ namespace MedLink.Application.Services
 
             await _unitOfWork.Repository<UserProfile>().AddAsync(profile);
             await _unitOfWork.Complete();
-          }
+        }
     }
 }

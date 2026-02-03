@@ -1,63 +1,42 @@
-
-using MedLink.Domain.Entities.Medical;
+using MedLink.Domain.Entities.Appointments;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-public class DoctorConfiguration : IEntityTypeConfiguration<Doctor>
+namespace MedLink.Infrastructure.Persistence.Configurations
 {
-    public void Configure(EntityTypeBuilder<Doctor> builder)
+    public class DoctorAvailabilityConfiguration : IEntityTypeConfiguration<DoctorAvailability>
     {
-        builder.HasKey(d => d.Id);
+        public void Configure(EntityTypeBuilder<DoctorAvailability> builder)
+        {
+            builder.HasKey(da => da.Id);
 
-        builder.Property(d => d.SpecialtyId)
-            .IsRequired();
+            builder.Property(da => da.DoctorId)
+                .IsRequired();
 
-        builder.Property(d => d.Bio)
-            .HasMaxLength(2000);
+            builder.Property(da => da.Date)
+                .IsRequired();
 
-        builder.Property(d => d.ImageUrl)
-            .HasMaxLength(512);
+            builder.Property(da => da.StartTime)
+                .IsRequired();
 
-        builder.Property(d => d.Price)
-            .HasPrecision(18, 2);
+            builder.Property(da => da.EndTime)
+                .IsRequired();
 
-        builder.Property(d => d.ClinicDetails)
-            .HasMaxLength(1000);
+            builder.Property(da => da.IsBooked)
+                .IsConcurrencyToken()
+                .HasDefaultValue(false);
 
-        builder.Property(d => d.Location)
-            .HasColumnType("geography")
-            .IsRequired();
+            builder.HasOne(da => da.Doctor)
+                .WithMany(d => d.Availabilities)
+                .HasForeignKey(da => da.DoctorId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-        builder.Property(d => d.Address);
+            builder.HasOne(da => da.Appointment)
+                .WithOne(a => a.Schedule)
+                .HasForeignKey<Appointment>(a => a.ScheduleId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-        builder.Property(d => d.City)
-            .IsRequired();
-
-        builder.Property(d => d.Gender)
-            .IsRequired();
-
-        builder.HasMany(d => d.Availabilities)
-            .WithOne(av => av.Doctor)
-            .HasForeignKey(av => av.DoctorId)
-            .OnDelete(DeleteBehavior.Cascade);
-        builder.HasOne(d => d.Specialization)
-            .WithMany(s => s.Doctors)
-            .HasForeignKey(d => d.SpecialtyId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasMany(d => d.Appointments)
-            .WithOne(a => a.Doctor)
-            .HasForeignKey(a => a.DoctorId);
-
-        builder.HasMany(d => d.Availabilities)
-            .WithOne(av => av.Doctor)
-            .HasForeignKey(av => av.DoctorId);
-
-        builder.HasMany(d => d.Reviews)
-            .WithOne(r => r.Doctor)
-            .HasForeignKey(r => r.DoctorId);
-
-        builder.HasIndex(d => new { d.City, d.SpecialtyId });
-
+            builder.HasIndex(da => new { da.DoctorId, da.Date });
+        }
     }
 }

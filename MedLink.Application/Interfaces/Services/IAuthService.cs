@@ -1,6 +1,4 @@
 using MedLink.Application.DTOs.Identity;
-using MedLink.Application.DTOs.Identity;
-using MedLink_Application.DTOs.Identity;
 using System;
 using System.Collections.Generic;
 using System.Linq;

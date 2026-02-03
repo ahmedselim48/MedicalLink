@@ -1,12 +1,6 @@
-﻿using MedLink.Application.Interfaces.Specifications;
-using MedLink.Domain.Entities.Content;
-using MedLink.Domain.Entities.Medical;
 ﻿using MedLink.Application.DTOs.UserProfile;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using MedLink.Application.Interfaces.Specifications;
+using MedLink.Domain.Entities.Content;
 
 namespace MedLink.Application.Interfaces.Services
 {

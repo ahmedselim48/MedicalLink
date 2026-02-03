@@ -1,5 +1,4 @@
 using MedLink.Domain.Entities.Medical;
-using MedLink.Application.Specifications;
 
 namespace MedLink.Application.Specifications.Medical
 {

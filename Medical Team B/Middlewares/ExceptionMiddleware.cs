@@ -27,29 +27,39 @@ namespace Medical_Team_B.Middlewares
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, ex.Message);
-                
                 context.Response.ContentType = "application/json";
-                
                 int statusCode = (int)HttpStatusCode.InternalServerError;
-                var result = string.Empty;
 
                 switch (ex)
                 {
-                    case NotFoundException notFoundException:
+                    case NotFoundException:
+                    case KeyNotFoundException:
                         statusCode = (int)HttpStatusCode.NotFound;
                         break;
-                    case BadRequestException badRequestException:
+                    case BadRequestException:
+                    case InvalidOperationException:
                         statusCode = (int)HttpStatusCode.BadRequest;
+                        break;
+                    case UnauthorizedAccessException:
+                        statusCode = (int)HttpStatusCode.Forbidden;
                         break;
                     default:
                         statusCode = (int)HttpStatusCode.InternalServerError;
                         break;
                 }
 
+                if (statusCode == (int)HttpStatusCode.InternalServerError)
+                {
+                    _logger.LogError(ex, ex.Message);
+                }
+                else
+                {
+                    _logger.LogWarning("Client Error ({StatusCode}): {Message}", statusCode, ex.Message);
+                }
+
                 context.Response.StatusCode = statusCode;
 
-                var response = _env.IsDevelopment() 
+                var response = _env.IsDevelopment()
                     ? new ApiExceptionResponse(statusCode, ex.Message, ex.StackTrace?.ToString())
                     : new ApiExceptionResponse(statusCode, ex.Message); // For NotFound, we usually want the message even in Prod
 

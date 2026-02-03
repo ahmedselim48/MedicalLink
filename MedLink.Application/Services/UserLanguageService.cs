@@ -1,7 +1,7 @@
-﻿using MedLink.Domain.Entities.User;
-using MedLink.Application.DTOs.UserProfile;
+﻿using MedLink.Application.DTOs.UserProfile;
 using MedLink.Application.Interfaces.Persistence;
 using MedLink.Application.Interfaces.Services;
+using MedLink.Domain.Entities.User;
 
 namespace MedLink.Application.Services
 {

@@ -1,12 +1,7 @@
-using AutoMapper;
-using MedLink.Domain.Identity;
-using MedLink.Application.DTOs.Identity;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using AutoMapper;
+using MedLink.Application.DTOs.Identity;
+using MedLink.Domain.Identity;
 
 namespace MedLink.Application.Mapping
 {

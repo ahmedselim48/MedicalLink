@@ -77,7 +77,7 @@ namespace MedLink.Infrastructure.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("UpdatedAt")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
@@ -113,7 +113,10 @@ namespace MedLink.Infrastructure.Migrations
                         .HasColumnType("time");
 
                     b.Property<bool>("IsBooked")
-                        .HasColumnType("bit");
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
@@ -126,7 +129,7 @@ namespace MedLink.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DoctorId");
+                    b.HasIndex("DoctorId", "Date");
 
                     b.ToTable("DoctorAvailabilities");
                 });
@@ -333,9 +336,16 @@ namespace MedLink.Infrastructure.Migrations
                     b.Property<int>("SpecialtyId")
                         .HasColumnType("int");
 
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("SpecialtyId");
+
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasFilter("[UserId] IS NOT NULL");
 
                     b.HasIndex("City", "SpecialtyId");
 
@@ -382,6 +392,12 @@ namespace MedLink.Infrastructure.Migrations
                     b.Property<int>("AppointmentId")
                         .HasColumnType("int");
 
+                    b.Property<string>("CheckoutSessionId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CheckoutUrl")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -391,7 +407,6 @@ namespace MedLink.Infrastructure.Migrations
                         .HasColumnType("nvarchar(10)");
 
                     b.Property<string>("FailureReason")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsDeleted")
@@ -404,24 +419,22 @@ namespace MedLink.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("RefundReason")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime>("RefundedAt")
+                    b.Property<DateTime?>("RefundedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
                     b.Property<string>("StripeClientSecret")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("StripePaymentIntentId")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
-                    b.Property<DateTime>("UpdatedAt")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
@@ -763,7 +776,7 @@ namespace MedLink.Infrastructure.Migrations
                     b.HasOne("MedLink.Domain.Entities.Appointments.DoctorAvailability", "Schedule")
                         .WithOne("Appointment")
                         .HasForeignKey("MedLink.Domain.Entities.Appointments.Appointment", "ScheduleId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("BookedByUser");
@@ -820,7 +833,14 @@ namespace MedLink.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("MedLink.Domain.Identity.ApplicationUser", "User")
+                        .WithOne("Doctor")
+                        .HasForeignKey("MedLink.Domain.Entities.Medical.Doctor", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
                     b.Navigation("Specialization");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("MedLink.Domain.Entities.Payments.Payment", b =>
@@ -946,6 +966,11 @@ namespace MedLink.Infrastructure.Migrations
             modelBuilder.Entity("MedLink.Domain.Entities.Medical.Specialization", b =>
                 {
                     b.Navigation("Doctors");
+                });
+
+            modelBuilder.Entity("MedLink.Domain.Identity.ApplicationUser", b =>
+                {
+                    b.Navigation("Doctor");
                 });
 #pragma warning restore 612, 618
         }

@@ -1,198 +1,101 @@
-﻿using MediatR;
-using MedLink_Application.Commands;
-using MedLink_Application.Queries;
-using MedLink_Application.Responses;
+﻿using MedLink.Application.DTOs.Payments;
+using MedLink.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Stripe;
-using System;
 
 namespace Medical_Team_B.Controllers
 {
-    // [Authorize]
-
+    [Authorize]
+    /// <summary>
+    /// Manages payment processing and retrieval.
+    /// </summary>
     public class PaymentsController : BaseApiController
     {
-        private readonly IMediator _mediator;
+        private readonly IPaymentService _paymentService;
         private readonly IConfiguration _configuration;
+        private readonly ILogger<PaymentsController> _logger;
 
-        public PaymentsController(IMediator mediator, IConfiguration configuration)
+        public PaymentsController(
+            IPaymentService paymentService,
+            IConfiguration configuration,
+            ILogger<PaymentsController> logger)
         {
-            _mediator = mediator;
+            _paymentService = paymentService;
             _configuration = configuration;
+            _logger = logger;
         }
 
-        
-        // 1. Create Payment
-        // POST: api/payments
-      
+        /// <summary>
+        /// Creates a payment for an appointment.
+        /// </summary>
+        /// <param name="request">The payment creation request details.</param>
+        /// <remarks>
+        /// When UseCheckoutSession is true (default), returns a CheckoutPaymentResponse with checkoutUrl.
+        /// When UseCheckoutSession is false, returns an EmbeddedPaymentResponse with clientSecret.
+        /// </remarks>
+        /// <response code="200">Payment created successfully.</response>
+        /// <response code="400">Invalid request or payment already exists.</response>
+        /// <response code="404">Appointment not found.</response>
         [HttpPost]
-        public async Task<ActionResult<PaymentDto>> CreatePayment([FromBody] CreatePaymentRequest request)
+        [ProducesResponseType(typeof(CheckoutPaymentResponse), StatusCodes.Status200OK)]
+        public async Task<IActionResult> CreatePayment([FromBody] CreatePaymentRequest request)
         {
-            try
-            {
-                var command = new CreatePaymentCommand
-                {
-                    AppointmentId = request.AppointmentId,
-                    PaymentMethod = request.PaymentMethod,
-                    CustomerEmail = request.CustomerEmail
-                };
+            var payment = await _paymentService.CreatePaymentAsync(request);
 
-                var payment = await _mediator.Send(command);
-
-                return Ok(new
-                {
-                    paymentId = payment.Id,
-                    clientSecret = payment.StripeClientSecret,
-                    amount = payment.Amount,
-                    currency = payment.Currency,
-                    status = payment.Status
-                });
-            }
-            catch (KeyNotFoundException ex)
+            return Ok(new CheckoutPaymentResponse
             {
-                return NotFound(ex.Message);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ex.Message);
-            }
+                PaymentId = payment.Id,
+                CheckoutUrl = payment.CheckoutUrl ?? "",
+                CheckoutSessionId = payment.CheckoutSessionId ?? "",
+                Amount = payment.Amount,
+                Currency = payment.Currency,
+                Status = payment.Status,
+                Message = "Redirect user to CheckoutUrl to complete payment"
+            });
         }
 
-      
-        /// 2. Confirm Payment
-        /// POST: api/payments/confirm
-       
+
+
+        /// <summary>
+        /// Confirms a payment after it's been completed (Admin/Internal use only).
+        /// </summary>
+        /// <param name="request">The payment confirmation details.</param>
+        /// <remarks>
+        /// This endpoint should normally only be called by webhooks.
+        /// Manual confirmation requires Admin role.
+        /// </remarks>
         [HttpPost("confirm")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> ConfirmPayment([FromBody] ConfirmPaymentRequest request)
         {
-            try
-            {
-                var command = new ConfirmPaymentCommand
-                {
-                    PaymentIntentId = request.PaymentIntentId
-                };
+            var success = await _paymentService.ConfirmPaymentByAppointmentIdAsync(request.AppointmentId);
+            if (!success) return NotFound(new { error = "Payment for this appointment not found" });
 
-                await _mediator.Send(command);
-                return Ok(new { message = "Payment confirmed successfully" });
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(ex.Message);
-            }
+            return Ok(new { message = "Payment confirmed successfully" });
         }
 
-       
-        /// 3. Get Payment By Appointment 
-        /// GET: api/payments/appointment/{appointmentId}
-    
+        /// <summary>
+        /// Gets payment details by appointment ID.
+        /// </summary>
+        /// <param name="appointmentId">The ID of the appointment.</param>
         [HttpGet("appointment/{appointmentId}")]
         public async Task<ActionResult<PaymentDto>> GetPaymentByAppointment(int appointmentId)
         {
-            try
-            {
-                var query = new GetPaymentByAppointmentQuery(appointmentId);
-                var payment = await _mediator.Send(query);
-                return Ok(payment);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(ex.Message);
-            }
+            var payment = await _paymentService.GetPaymentByAppointmentIdAsync(appointmentId);
+            return Ok(payment);
         }
 
-        // 4. Get My Payments 
-        // GET: api/payments/my-payments
+        /// <summary>
+        /// Gets all payments for the current authenticated user.
+        /// </summary>
         [HttpGet("my-payments")]
         public async Task<ActionResult<List<PaymentDto>>> GetMyPayments()
         {
-            var userId = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
-            if (string.IsNullOrEmpty(userId))
-                return Unauthorized("User not authenticated");
-
-            var query = new GetMyPaymentsQuery(userId);
-            var payments = await _mediator.Send(query);
+            var payments = await _paymentService.GetMyPaymentsAsync(UserId);
             return Ok(payments);
         }
 
-       
-        /// 5. Stripe Webhook
-        /// POST: api/payments/webhook
-        [HttpPost("webhook")]
-        [AllowAnonymous]
-        public async Task<IActionResult> StripeWebhook()
-        {
-            var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
-
-            try
-            {
-                var stripeSignature = Request.Headers["Stripe-Signature"].ToString();
-                var webhookSecret = _configuration["Stripe:WebhookSecret"];
-
-                Event stripeEvent;
-
-                if (!string.IsNullOrEmpty(webhookSecret))
-                {
-                    try
-                    {
-                        stripeEvent = EventUtility.ConstructEvent(json, stripeSignature, webhookSecret);
-                    }
-                    catch (StripeException e)
-                    {
-                        Console.WriteLine($"Webhook signature verification failed: {e.Message}");
-                        return BadRequest();
-                    }
-                }
-                else
-                {
-                    stripeEvent = EventUtility.ParseEvent(json);
-                }
-
-                if (stripeEvent.Type == "payment_intent.succeeded")
-                {
-                    var paymentIntent = stripeEvent.Data.Object as PaymentIntent;
-                    if (paymentIntent != null)
-                    {
-                        Console.WriteLine($"Payment succeeded: {paymentIntent.Id}");
-
-                        var command = new ConfirmPaymentCommand
-                        {
-                            PaymentIntentId = paymentIntent.Id
-                        };
-
-                        await _mediator.Send(command);
-                    }
-                }
-                else if (stripeEvent.Type == "payment_intent.payment_failed")
-                {
-                    var paymentIntent = stripeEvent.Data.Object as PaymentIntent;
-                    if (paymentIntent != null)
-                    {
-                        Console.WriteLine($"Payment failed: {paymentIntent.Id}");
-                    }
-                }
-                else if (stripeEvent.Type == "payment_intent.canceled")
-                {
-                    var paymentIntent = stripeEvent.Data.Object as PaymentIntent;
-                    if (paymentIntent != null)
-                    {
-                        Console.WriteLine($"Payment canceled: {paymentIntent.Id}");
-                    }
-                }
-                else
-                {
-                    Console.WriteLine($"Unhandled event type: {stripeEvent.Type}");
-                }
-
-                return Ok();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Webhook error: {ex.Message}");
-                return BadRequest();
-            }
-        }
 
     }
 }

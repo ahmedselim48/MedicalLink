@@ -1,16 +1,15 @@
 using MedLink.Application.DTOs.Identity;
-using MedLink.Application.DTOs.Identity;
 using MedLink.Application.Interfaces.Services;
-using MedLink_Application.DTOs.Identity;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System.Linq;
 
 namespace Medical_Team_B.Controllers
 {
 
+    /// <summary>
+    /// Manages authentication and user identity operations.
+    /// </summary>
     public class AuthController : BaseApiController
     {
         private readonly IAuthService _authService;
@@ -20,10 +19,10 @@ namespace Medical_Team_B.Controllers
             _authService = authService;
         }
 
-        // ===================================
-        // 1. Authentication & Registration
-        // ===================================
-
+        /// <summary>
+        /// Registers a new user.
+        /// </summary>
+        /// <param name="registerDto">The registration details.</param>
         [HttpPost("register")]
         public async Task<ActionResult<AuthModel>> RegisterAsync([FromBody] RegisterModel registerDto)
         {
@@ -38,6 +37,10 @@ namespace Medical_Team_B.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Logs in a user and returns a JWT token.
+        /// </summary>
+        /// <param name="model">The login credentials.</param>
         [HttpPost("login")]
         public async Task<ActionResult<AuthModel>> GetTokenAsync([FromBody] RequestTokenModel model)
         {
@@ -52,6 +55,9 @@ namespace Medical_Team_B.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Initiates Google authentication.
+        /// </summary>
         [HttpGet("signin-google")]
         public IActionResult GoogleLogin()
         {
@@ -60,6 +66,9 @@ namespace Medical_Team_B.Controllers
             return Challenge(properties, Microsoft.AspNetCore.Authentication.Google.GoogleDefaults.AuthenticationScheme);
         }
 
+        /// <summary>
+        /// Handles Google authentication callback.
+        /// </summary>
         [HttpGet("google-response")]
         public async Task<ActionResult<AuthModel>> GoogleResponse()
         {
@@ -79,10 +88,10 @@ namespace Medical_Team_B.Controllers
             return Ok(authModel);
         }
 
-        // ===================================
-        // 2. Account Management
-        // ===================================
-
+        /// <summary>
+        /// Changes the user's password.
+        /// </summary>
+        /// <param name="model">The change password details.</param>
         [Authorize]
         [HttpPost("change-password")]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordModel model)
@@ -98,6 +107,9 @@ namespace Medical_Team_B.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Deletes the user's account.
+        /// </summary>
         [Authorize]
         [HttpDelete("account")]
         public async Task<IActionResult> DeleteAccount()
@@ -109,6 +121,10 @@ namespace Medical_Team_B.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Restores a deleted account.
+        /// </summary>
+        /// <param name="model">The credentials to verify account ownership.</param>
         [HttpPost("restore-account")]
         public async Task<ActionResult<AuthModel>> RestoreAccountAsync([FromBody] RequestTokenModel model)
         {
@@ -123,10 +139,10 @@ namespace Medical_Team_B.Controllers
             return Ok(result);
         }
 
-        // ===================================
-        // 3. Password Recovery
-        // ===================================
-
+        /// <summary>
+        /// Initiates the forgot password process.
+        /// </summary>
+        /// <param name="model">The email of the user.</param>
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordModel model)
         {
@@ -140,6 +156,10 @@ namespace Medical_Team_B.Controllers
             return Ok();
         }
 
+        /// <summary>
+        /// Resets the user's password.
+        /// </summary>
+        /// <param name="model">The reset password details.</param>
         [HttpPost("reset-password")]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordModel model)
         {
@@ -153,10 +173,11 @@ namespace Medical_Team_B.Controllers
             return Ok(result.Message);
         }
 
-        // ===================================
-        // 4. Verification (Email & Phone)
-        // ===================================
-
+        /// <summary>
+        /// Confirms the user's email address.
+        /// </summary>
+        /// <param name="userId">The user ID.</param>
+        /// <param name="code">The confirmation code.</param>
         [HttpGet("confirm-email")]
         public async Task<IActionResult> ConfirmEmail(string userId, string code)
         {
@@ -167,6 +188,10 @@ namespace Medical_Team_B.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Sends a verification code to the user's phone.
+        /// </summary>
+        /// <param name="model">The phone verification details.</param>
         [HttpPost("verify-phone/send")]
         public async Task<IActionResult> SendPhoneVerification([FromBody] SendPhoneVerificationModel model)
         {
@@ -176,6 +201,10 @@ namespace Medical_Team_B.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Verifies the code sent to the user's phone.
+        /// </summary>
+        /// <param name="model">The phone confirmation details.</param>
         [HttpPost("verify-phone/confirm")]
         public async Task<IActionResult> ConfirmPhone([FromBody] ConfirmPhoneModel model)
         {
@@ -185,10 +214,10 @@ namespace Medical_Team_B.Controllers
             return Ok(result);
         }
 
-        // ===================================
-        // 5. Administration
-        // ===================================
-
+        /// <summary>
+        /// Adds a role to a user (Admin only).
+        /// </summary>
+        /// <param name="model">The role addition details.</param>
         [Authorize(Roles = "Admin")]
         [HttpPost("addrole")]
         public async Task<ActionResult<string>> AddRoleAsync([FromBody] AddRoleModel model)

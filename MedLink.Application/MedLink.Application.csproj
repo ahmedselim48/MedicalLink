@@ -8,6 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Specifications\Doctors\**" />
+    <EmbeddedResource Remove="Specifications\Doctors\**" />
+    <None Remove="Specifications\Doctors\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="NetTopologySuite" Version="2.5.0" />
     <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.0.1" />
   </ItemGroup>
@@ -17,7 +23,6 @@
     <Folder Include="Mapping\" />
     <Folder Include="Common\" />
     <Folder Include="Services\" />
-    <Folder Include="Specifications\Doctors\" />
   </ItemGroup>
 
   <ItemGroup>
@@ -28,14 +33,12 @@
     <PackageReference Include="Twilio" Version="7.14.2" />
     <ProjectReference Include="..\MedLink.Domain\MedLink.Domain.csproj" />
   </ItemGroup>
-	<ItemGroup>
-		<PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.0.1" />
-	</ItemGroup>
+
 
 
 	<ItemGroup>
     <PackageReference Include="Stripe.net" Version="50.3.0" />
-	<PackageReference Include="MediatR" Version="14.0.0" />
+
 
 	</ItemGroup>
 

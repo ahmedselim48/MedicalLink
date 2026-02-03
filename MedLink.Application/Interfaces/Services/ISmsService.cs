@@ -1,4 +1,3 @@
-using MedLink.Domain.Identity;
 using Twilio.Rest.Api.V2010.Account;
 
 namespace MedLink.Application.Interfaces.Services

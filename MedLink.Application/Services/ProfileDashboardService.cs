@@ -1,11 +1,11 @@
-﻿using MedLink.Domain.Entities.Appointments;
-using MedLink.Domain.Entities.User;
-using MedLink.Domain.Enums;
-using MedLink.Domain.Identity;
-using MedLink.Application.DTOs.UserProfile;
+﻿using MedLink.Application.DTOs.UserProfile;
 using MedLink.Application.Interfaces.Persistence;
 using MedLink.Application.Interfaces.Services;
-using MedLink.Application.Specifications;
+using MedLink.Application.Specifications.Appointments;
+using MedLink.Application.Specifications.Users;
+using MedLink.Domain.Entities.Appointments;
+using MedLink.Domain.Entities.User;
+using MedLink.Domain.Identity;
 using Microsoft.AspNetCore.Identity;
 
 public class ProfileDashboardService : IProfileDashboardService
@@ -44,7 +44,7 @@ public class ProfileDashboardService : IProfileDashboardService
 
         var favoriteDoctorsCount = await _unitOfWork
             .Repository<Favorite>()
-            .GetCountAsync(new FavoritesByUserSpec(userId));
+            .GetCountAsync(new UserFavoriteDoctorsSpec(userId));
 
         return new UserProfileDashboardDto
         {

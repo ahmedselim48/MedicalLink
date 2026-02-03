@@ -1,3 +1,4 @@
+using System.Reflection;
 using MedLink.Domain.Entities.Appointments;
 using MedLink.Domain.Entities.Chat;
 using MedLink.Domain.Entities.Content;
@@ -7,8 +8,6 @@ using MedLink.Domain.Entities.User;
 using MedLink.Domain.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using System.Reflection;
-using System.Reflection.Emit;
 namespace MedLink.Infrastructure.Persistence.Context;
 
 public class ApplicationDbContext : IdentityDbContext<ApplicationUser>

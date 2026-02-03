@@ -1,5 +1,4 @@
 using MedLink.Domain.Entities.User;
-using MedLink.Application.Specifications;
 
 namespace MedLink.Application.Specifications.Users
 {

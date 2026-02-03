@@ -1,9 +1,9 @@
 using System.Linq.Expressions;
+using MedLink.Application.Interfaces.Persistence;
+using MedLink.Application.Interfaces.Specifications;
 using MedLink.Domain.Common;
 using MedLink.Infrastructure.Persistence.Context;
 using MedLink.Infrastructure.Persistence.Specifications;
-using MedLink.Application.Interfaces.Persistence;
-using MedLink.Application.Interfaces.Specifications;
 using Microsoft.EntityFrameworkCore;
 
 namespace MedLink.Infrastructure.Persistence.Repositories

@@ -1,13 +1,9 @@
-﻿using MedLink.Domain.Interfaces.Repositories;
+﻿using MedLink.Application.DTOs.Payments;
+using MedLink.Domain.Interfaces.Repositories;
 using Microsoft.Extensions.Configuration;
 using Stripe;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace MedLink_Application.Services
+namespace MedLink.Application.Services
 {
 
     public class StripeService : IStripeService
@@ -22,44 +18,50 @@ namespace MedLink_Application.Services
             StripeConfiguration.ApiKey = _secretKey;
         }
 
-        public async Task<(string PaymentIntentId, string ClientSecret)> CreatePaymentIntentAsync(
+
+
+        public async Task<(string SessionId, string CheckoutUrl)> CreateCheckoutSessionAsync(
             decimal amount,
             string currency,
             string customerEmail,
+            string successUrl,
+            string cancelUrl,
             Dictionary<string, string>? metadata = null)
         {
-            var options = new PaymentIntentCreateOptions
+            var options = new Stripe.Checkout.SessionCreateOptions
             {
-                Amount = (long)(amount * 100), // تحويل إلى أصغر وحدة (قرش)
-                Currency = currency.ToLower(),
-                ReceiptEmail = customerEmail,
-                AutomaticPaymentMethods = new PaymentIntentAutomaticPaymentMethodsOptions
+                PaymentMethodTypes = new List<string> { "card" },
+                CustomerEmail = customerEmail,
+                LineItems = new List<Stripe.Checkout.SessionLineItemOptions>
                 {
-                    Enabled = true,
+                    new Stripe.Checkout.SessionLineItemOptions
+                    {
+                        PriceData = new Stripe.Checkout.SessionLineItemPriceDataOptions
+                        {
+                            Currency = currency.ToLower(),
+                            UnitAmount = (long)(amount * 100),
+                            ProductData = new Stripe.Checkout.SessionLineItemPriceDataProductDataOptions
+                            {
+                                Name = "Medical Appointment Payment",
+                                Description = "Payment for doctor consultation"
+                            }
+                        },
+                        Quantity = 1
+                    }
                 },
+                Mode = "payment",
+                SuccessUrl = successUrl,
+                CancelUrl = cancelUrl,
                 Metadata = metadata ?? new Dictionary<string, string>()
             };
 
-            var service = new PaymentIntentService();
-            var paymentIntent = await service.CreateAsync(options);
+            var sessionService = new Stripe.Checkout.SessionService();
+            var session = await sessionService.CreateAsync(options);
 
-            return (paymentIntent.Id, paymentIntent.ClientSecret);
+            return (session.Id, session.Url);
         }
 
-        public async Task<bool> ConfirmPaymentAsync(string paymentIntentId)
-        {
-            try
-            {
-                var service = new PaymentIntentService();
-                var paymentIntent = await service.GetAsync(paymentIntentId);
 
-                return paymentIntent.Status == "succeeded";
-            }
-            catch
-            {
-                return false;
-            }
-        }
 
         public async Task<bool> CancelPaymentIntentAsync(string paymentIntentId)
         {
@@ -98,7 +100,7 @@ namespace MedLink_Application.Services
                 var service = new RefundService();
                 var refund = await service.CreateAsync(options);
 
-                return refund.Status == "succeeded" || refund.Status == "pending";
+                return refund.Status == StripeConstants.StatusSucceeded || refund.Status == "pending"; // pending doesn't have a const yet
             }
             catch
             {
@@ -113,6 +115,35 @@ namespace MedLink_Application.Services
                 var service = new PaymentIntentService();
                 var paymentIntent = await service.GetAsync(paymentIntentId);
                 return paymentIntent.Status;
+            }
+            catch
+            {
+                return "unknown";
+            }
+        }
+        public async Task<string?> GetPaymentIntentIdBySessionIdAsync(string sessionId)
+        {
+             try
+            {
+                var service = new Stripe.Checkout.SessionService();
+                var session = await service.GetAsync(sessionId);
+                
+                // If the session is complete, it should have a PaymentIntentId
+                return session?.PaymentIntentId;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        public async Task<string> GetPaymentStatusBySessionIdAsync(string sessionId)
+        {
+            try
+            {
+                var service = new Stripe.Checkout.SessionService();
+                var session = await service.GetAsync(sessionId);
+                return session?.PaymentStatus ?? "unknown";
             }
             catch
             {

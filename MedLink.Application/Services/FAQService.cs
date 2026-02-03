@@ -1,13 +1,7 @@
-﻿using MedLink.Domain.Entities.Content;
-using MedLink.Domain.Entities.Medical;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using MedLink.Application.Interfaces.Persistence;
-using MedLink.Application.Interfaces.Specifications;
+﻿using MedLink.Application.Interfaces.Persistence;
 using MedLink.Application.Interfaces.Services;
+using MedLink.Application.Interfaces.Specifications;
+using MedLink.Domain.Entities.Content;
 
 namespace MedLink.Application.Services
 {
@@ -27,7 +21,7 @@ namespace MedLink.Application.Services
             return q;
         }
 
-      
+
 
         public async Task<IReadOnlyList<FAQ>> GetAllQuestionsAsync(ISpecification<FAQ>? spec)
         {
@@ -37,7 +31,7 @@ namespace MedLink.Application.Services
                 : await repo.GetAllAsync();
         }
 
-       
+
         //public async Task DeleteQuestionAsync(Guid id)
         //{
         //    var repo = _unitOfWork.Repository<FAQ>();

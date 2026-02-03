@@ -1,5 +1,5 @@
 using MedLink.Application.DTOs.Doctors;
-using MedLink.Application.DTOs.Doctors;
+using MedLink.Application.DTOs.Identity;
 using MedLink.Application.Interfaces.Specifications;
 using MedLink.Domain.Entities.Medical;
 
@@ -12,8 +12,8 @@ namespace MedLink.Application.Interfaces.Services
         Task<Doctor?> GetDoctorByIdAsync(int id);
         Task<IReadOnlyList<Doctor>> GetAllDoctorsAsync(ISpecification<Doctor>? spec = null);
         Task<Doctor> AddDoctorAsync(Doctor doctor);
+        Task<Doctor> CreateDoctorAsync(AdminCreateDoctorDto dto);
         Task UpdateDoctorAsync(Doctor doctor);
         Task DeleteDoctorAsync(int id);
-
     }
 }

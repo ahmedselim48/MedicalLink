@@ -1,5 +1,4 @@
 using MedLink.Domain.Entities.User;
-using MedLink.Domain.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

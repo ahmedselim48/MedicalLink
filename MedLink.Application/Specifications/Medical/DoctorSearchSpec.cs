@@ -1,7 +1,6 @@
 using System.Linq.Expressions;
-using MedLink.Domain.Entities.Medical;
 using MedLink.Application.DTOs.Doctors;
-using MedLink.Application.Specifications;
+using MedLink.Domain.Entities.Medical;
 using NetTopologySuite.Geometries;
 
 namespace MedLink.Application.Specifications.Medical

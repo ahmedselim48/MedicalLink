@@ -1,5 +1,4 @@
 using MedLink.Domain.Entities.Appointments;
-using MedLink.Domain.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -24,7 +23,7 @@ public class AppointmentConfiguration : IEntityTypeConfiguration<Appointment>
             .HasPrecision(18, 2);
         builder.Property(a => a.BookedByUserId)
        .IsRequired()
-       .HasMaxLength(450); 
+       .HasMaxLength(450);
 
 
 
