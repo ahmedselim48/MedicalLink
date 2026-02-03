@@ -96,7 +96,7 @@ namespace MedLink.Application.Services
                 if (user == null)
                     return false;
 
-                bool isPatient = appointment.UserId == userId;
+                bool isPatient = appointment.BookedByUserId == userId;
 
                 bool isDoctor = false;
                 var doctor = await _unitOfWork.Repository<Doctor>()
@@ -148,7 +148,7 @@ namespace MedLink.Application.Services
                 var dto = appointment.Adapt<ChatRoomInfoDto>();
                 dto.ChatRoomId = chatRoomResult.Value.Id;
 
-                bool isPatient = appointment.UserId == currentUserId;
+                bool isPatient = appointment.BookedByUserId == currentUserId;
 
                 if (isPatient)
                 {
@@ -174,9 +174,9 @@ namespace MedLink.Application.Services
                 }
                 else
                 {
-                    dto.OtherUserId = appointment.UserId;
+                    dto.OtherUserId = appointment.BookedByUserId;
                     var patientUser =
-                        await _userManager.FindByIdAsync(appointment.UserId);
+                        await _userManager.FindByIdAsync(appointment.BookedByUserId);
 
                     dto.OtherUserName =
                         patientUser?.FullName ??
@@ -212,7 +212,7 @@ namespace MedLink.Application.Services
                 // Patient appointments
                 appointments.AddRange(
                     await _unitOfWork.Repository<Appointment>()
-                        .FindAsync(a => a.UserId == userId));
+                        .FindAsync(a => a.BookedByUserId == userId));
 
                 // Doctor appointments
                 var doctor = await _unitOfWork.Repository<Doctor>()

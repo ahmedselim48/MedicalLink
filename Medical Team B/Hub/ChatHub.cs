@@ -74,7 +74,7 @@ public class ChatHub : Hub
             .AsNoTracking()
             .FirstOrDefaultAsync(a =>
                 a.Id == appointmentId &&
-                (a.UserId == userId || a.DoctorId.ToString() == userId));
+                (a.BookedByUserId == userId || a.DoctorId.ToString() == userId));
 
         if (appointment == null)
             Throw(EntityError<Appointment>.NotFound("Appointment access denied"));
@@ -100,7 +100,7 @@ public class ChatHub : Hub
         if (chatRoom == null)
             Throw(EntityError<ChatRoom>.NotFound());
 
-        if (chatRoom.Appointment!.UserId != userId &&
+        if (chatRoom.Appointment!.BookedByUserId != userId &&
             chatRoom.Appointment.DoctorId.ToString() != userId)
             Throw(Error.Forbidden("You are not allowed to send messages in this chat"));
 
