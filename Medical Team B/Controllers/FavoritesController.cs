@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using MedLink.Application.DTOs.Doctors;
 using MedLink.Application.DTOs.User;
 using MedLink.Application.Interfaces.Services;

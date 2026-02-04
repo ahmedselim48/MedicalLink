@@ -30,6 +30,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
     public DbSet<FAQ> FAQs { get; set; }
     public DbSet<About> Abouts { get; set; }
+    public DbSet<Language> Languages { get; set; }
 
     public DbSet<UserProfile> UserProfiles { get; set; }
     public DbSet<Favorite> Favorites { get; set; }
@@ -38,6 +39,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+        builder.Entity<Doctor>().HasQueryFilter(d => !d.IsDeleted);
 
         builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
     }

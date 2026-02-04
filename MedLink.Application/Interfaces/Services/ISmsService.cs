@@ -1,7 +1,6 @@
-using MedLink.Domain.Identity;
 using Twilio.Rest.Api.V2010.Account;
 
-namespace MedLink_Application.Interfaces.Services
+namespace MedLink.Application.Interfaces.Services
 {
     public interface ISmsService
     {

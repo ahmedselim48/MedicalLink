@@ -1,12 +1,11 @@
 using MedLink.Application.DTOs.Identity;
-using MedLink_Application.DTOs.Identity;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MedLink_Application.Interfaces.Services
+namespace MedLink.Application.Interfaces.Services
 {
     public interface IAuthService
     {
@@ -20,6 +19,8 @@ namespace MedLink_Application.Interfaces.Services
         Task<AuthModel> LoginWithGoogleAsync(string email, string name, string googleId);
         Task<string> ConfirmEmailAsync(string userId, string code);
         Task<string> DeleteAccountAsync(string userId);
+        Task<AuthModel> RestoreAccountAsync(RequestTokenModel model);
+        Task<string> ChangePasswordAsync(ChangePasswordModel model);
 
 
     }

@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace MedLink_Application.DTOs.Identity
+namespace MedLink.Application.DTOs.Identity
 {
     public class SendPhoneVerificationModel
     {

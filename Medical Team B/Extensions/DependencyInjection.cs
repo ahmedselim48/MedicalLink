@@ -1,16 +1,11 @@
-using MedLink.Infrastructure.Persistence.Context;
-using MedLink.Infrastructure.Persistence.Repositories;
-using MedLink.Infrastructure.Persistence.UnitOfWork;
 using MedLink.Application.Interfaces.Persistence;
 using MedLink.Application.Interfaces.Services;
 using MedLink.Application.Mapping;
 using MedLink.Application.Services;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
+using MedLink.Infrastructure.Persistence.Context;
+using MedLink.Infrastructure.Persistence.Repositories;
+using MedLink.Infrastructure.Persistence.UnitOfWork;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
-using MedLink_Application.Interfaces.Services;
 
 namespace Medical_Team_B.Extensions
 {
@@ -24,13 +19,15 @@ namespace Medical_Team_B.Extensions
 
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(connectionString,
-                    b => 
+                    b =>
                     {
                         b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName);
                         b.UseNetTopologySuite(); // Enable spatial data support
                     }));
 
-            services.AddAutoMapper(typeof(AuthMappingProfiles));
+            //services.AddAutoMapper(typeof(AuthMappingProfiles));
+            services.AddAutoMapper(cfg => cfg.AddProfile<MappingProfile>());
+
             services.AddScoped<EmailToUsernameResolver>();
 
 

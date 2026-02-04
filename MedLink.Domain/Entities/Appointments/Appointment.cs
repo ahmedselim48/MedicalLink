@@ -1,6 +1,8 @@
 using MedLink.Domain.Common;
 using MedLink.Domain.Entities.Medical;
+using MedLink.Domain.Entities.Payments;
 using MedLink.Domain.Enums;
+using MedLink.Domain.Identity;
 
 namespace MedLink.Domain.Entities.Appointments;
 using global::MedLink.Domain.Entities.Payments;

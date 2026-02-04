@@ -13,5 +13,8 @@ namespace MedLink.Domain.Entities.User
 
         public Gender Gender { get; set; }
         public string? MedicalHistory { get; set; }
+
+        public string PreferredLanguage { get; set; } = "en";
+
     }
 }

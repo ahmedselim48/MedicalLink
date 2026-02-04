@@ -1,11 +1,11 @@
-using MedLink_Application.Common.Sms;
-using MedLink_Application.Interfaces.Services;
+using MedLink.Application.Common.Sms;
+using MedLink.Application.Interfaces.Services;
 using Microsoft.Extensions.Options;
 using Twilio;
 using Twilio.Rest.Api.V2010.Account;
 using Twilio.Types;
 
-namespace MedLink_Application.Services
+namespace MedLink.Application.Services
 {
     public class SmsService : ISmsService
     {

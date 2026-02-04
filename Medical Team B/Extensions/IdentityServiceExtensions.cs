@@ -1,11 +1,11 @@
-﻿using MedLink.Application.Common.JWT;
+﻿using System.Text;
+using MedLink.Application.Common.Email;
+using MedLink.Application.Common.JWT;
+using MedLink.Application.Common.Sms;
+using MedLink.Application.Interfaces.Services;
+using MedLink.Application.Services;
 using MedLink.Domain.Identity;
 using MedLink.Infrastructure.Persistence.Context;
-using MedLink.Infrastructure.Persistence.UnitOfWork;
-using MedLink_Application.Common.Email;
-using MedLink_Application.Common.Sms;
-using MedLink_Application.Interfaces.Services;
-using MedLink_Application.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
@@ -121,6 +121,7 @@ namespace Medical_Team_B.Extensions
                 googleOptions.ClientId = configuration["Authentication:Google:ClientId"];
                 googleOptions.ClientSecret = configuration["Authentication:Google:ClientSecret"];
             });
+
 
 
             return services;
