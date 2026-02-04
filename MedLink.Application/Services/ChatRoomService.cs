@@ -1,0 +1,279 @@
+﻿using Domain.ErrorHandling;
+using Mapster;
+using MapsterMapper;
+using MedLink.Application.DTOs.Chat;
+using MedLink.Application.Interfaces.Persistence;
+using MedLink.Application.Interfaces.Services;
+using MedLink.Application.Specifications.Chat;
+using MedLink.Domain.Entities.Appointments;
+using MedLink.Domain.Entities.Chat;
+using MedLink.Domain.Entities.Medical;
+using MedLink.Domain.Identity;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace MedLink.Application.Services
+{
+    public class ChatRoomService : IChatRoomService
+    {
+        private readonly IUnitOfWork _unitOfWork;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly ILogger<ChatRoomService> _logger;
+
+        public ChatRoomService(
+            IUnitOfWork unitOfWork,
+            UserManager<ApplicationUser> userManager,
+            ILogger<ChatRoomService> logger)
+        {
+            _unitOfWork = unitOfWork;
+            _userManager = userManager;
+            _logger = logger;
+        }
+
+        #region ChatRoom
+
+        public async Task<Result<ChatRoom>> GetOrCreateChatRoomAsync(int appointmentId)
+        {
+            try
+            {
+                var spec = new ChatRoomByAppointmentSpec(appointmentId);
+                var chatRoom = await _unitOfWork.Repository<ChatRoom>()
+                    .GetEntityWithAsync(spec);
+
+                if (chatRoom != null)
+                    return Result.Success(chatRoom);
+
+                var appointment = await _unitOfWork.Repository<Appointment>()
+                    .GetByIdAsync(appointmentId);
+
+                if (appointment == null)
+                    return Result.Failure<ChatRoom>(
+                        Error.NotFound("Appointment not found"));
+
+                chatRoom = new ChatRoom
+                {
+                    AppointmentId = appointmentId,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                await _unitOfWork.Repository<ChatRoom>().AddAsync(chatRoom);
+                await _unitOfWork.Complete();
+
+                _logger.LogInformation(
+                    "Created chat room {ChatRoomId} for appointment {AppointmentId}",
+                    chatRoom.Id, appointmentId);
+
+                return Result.Success(chatRoom);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetOrCreateChatRoomAsync");
+                return Result.Failure<ChatRoom>(
+                    Error.InternalServer("Failed to create chat room"));
+            }
+        }
+
+        #endregion
+
+        #region Authorization
+
+        public async Task<bool> CanUserAccessAsync(int appointmentId, string userId)
+        {
+            try
+            {
+                var appointment = await _unitOfWork.Repository<Appointment>()
+                    .GetByIdAsync(appointmentId);
+
+                if (appointment == null)
+                    return false;
+
+                var user = await _userManager.FindByIdAsync(userId);
+                if (user == null)
+                    return false;
+
+                bool isPatient = appointment.BookedByUserId == userId;
+
+                bool isDoctor = false;
+                var doctor = await _unitOfWork.Repository<Doctor>()
+                    .GetByIdAsync(appointment.DoctorId);
+
+                if (doctor != null &&
+                    (doctor.UserId == userId || doctor.Id.ToString() == userId))
+                {
+                    isDoctor = true;
+                }
+
+                bool isAdmin = await _userManager.IsInRoleAsync(user, "Admin");
+
+                return isPatient || isDoctor || isAdmin;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in CanUserAccessAsync");
+                return false;
+            }
+        }
+
+        #endregion
+
+        #region ChatRoom Info
+
+        public async Task<Result<ChatRoomInfoDto>> GetChatRoomInfoAsync(
+            int appointmentId,
+            string currentUserId)
+        {
+            try
+            {
+                var appointment = await _unitOfWork.Repository<Appointment>()
+                    .GetByIdAsync(appointmentId);
+
+                if (appointment == null)
+                    return Result.Failure<ChatRoomInfoDto>(
+                        Error.NotFound("Appointment not found"));
+
+                if (!await CanUserAccessAsync(appointmentId, currentUserId))
+                    return Result.Failure<ChatRoomInfoDto>(
+                        Error.Forbidden("Access denied"));
+
+                var chatRoomResult = await GetOrCreateChatRoomAsync(appointmentId);
+                if (chatRoomResult.IsFailure)
+                    return Result.Failure<ChatRoomInfoDto>(chatRoomResult.Error);
+
+            
+                var dto = appointment.Adapt<ChatRoomInfoDto>();
+                dto.ChatRoomId = chatRoomResult.Value.Id;
+
+                bool isPatient = appointment.BookedByUserId == currentUserId;
+
+                if (isPatient)
+                {
+                    var doctor = await _unitOfWork.Repository<Doctor>()
+                        .GetByIdAsync(appointment.DoctorId);
+
+                    if (doctor == null)
+                        return Result.Failure<ChatRoomInfoDto>(
+                            Error.NotFound("Doctor not found"));
+
+                    if (!string.IsNullOrEmpty(doctor.UserId))
+                    {
+                        dto.OtherUserId = doctor.UserId;
+                        var doctorUser = await _userManager.FindByIdAsync(doctor.UserId);
+                        dto.OtherUserName =
+                            doctorUser?.FullName ?? doctor.Name ?? "Doctor";
+                    }
+                    else
+                    {
+                        dto.OtherUserId = $"doctor_{doctor.Id}";
+                        dto.OtherUserName = doctor.Name ?? "Doctor";
+                    }
+                }
+                else
+                {
+                    dto.OtherUserId = appointment.BookedByUserId;
+                    var patientUser =
+                        await _userManager.FindByIdAsync(appointment.BookedByUserId);
+
+                    dto.OtherUserName =
+                        patientUser?.FullName ??
+                        appointment.PatientName ??
+                        "Patient";
+                }
+
+                return Result.Success(dto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetChatRoomInfoAsync");
+                return Result.Failure<ChatRoomInfoDto>(
+                    Error.InternalServer("Failed to get chat room info"));
+            }
+        }
+
+        #endregion
+
+        #region User ChatRooms
+
+        public async Task<Result<List<ChatRoomDto>>> GetUserChatRoomsAsync(string userId)
+        {
+            try
+            {
+                var user = await _userManager.FindByIdAsync(userId);
+                if (user == null)
+                    return Result.Failure<List<ChatRoomDto>>(
+                        Error.NotFound("User not found"));
+
+                var appointments = new List<Appointment>();
+
+                // Patient appointments
+                appointments.AddRange(
+                    await _unitOfWork.Repository<Appointment>()
+                        .FindAsync(a => a.BookedByUserId == userId));
+
+                // Doctor appointments
+                var doctor = await _unitOfWork.Repository<Doctor>()
+                    .FirstOrDefaultAsync(d => d.UserId == userId);
+
+                if (doctor != null)
+                {
+                    appointments.AddRange(
+                        await _unitOfWork.Repository<Appointment>()
+                            .FindAsync(a => a.DoctorId == doctor.Id));
+                }
+
+                var result = new List<ChatRoomDto>();
+
+                foreach (var appointment in appointments.Distinct())
+                {
+                    var chatRoomResult = await GetOrCreateChatRoomAsync(appointment.Id);
+                    if (chatRoomResult.IsFailure)
+                        continue;
+
+                    var infoResult =
+                        await GetChatRoomInfoAsync(appointment.Id, userId);
+
+                    if (infoResult.IsFailure)
+                        continue;
+
+                    var lastMessage = (await _unitOfWork.Repository<Message>()
+                            .FindAsync(m =>
+                                m.ChatRoomId == chatRoomResult.Value.Id &&
+                                !m.IsDeleted))
+                        .OrderByDescending(m => m.CreatedAt)
+                        .FirstOrDefault();
+
+                    var dto = appointment.Adapt<ChatRoomDto>();
+                    dto.ChatRoomId = chatRoomResult.Value.Id;
+                    dto.OtherUserId = infoResult.Value.OtherUserId;
+                    dto.OtherUserName = infoResult.Value.OtherUserName;
+                    dto.LastMessage = lastMessage?.Content;
+                    dto.LastMessageTime = lastMessage?.CreatedAt;
+                    dto.UnreadCount = 0; 
+
+                    result.Add(dto);
+                }
+
+                return Result.Success(
+                    result
+                        .OrderByDescending(x => x.LastMessageTime)
+                        .ToList());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetUserChatRoomsAsync");
+                return Result.Failure<List<ChatRoomDto>>(
+                    Error.InternalServer("Failed to get chat rooms"));
+            }
+        }
+
+        #endregion
+    }
+
+}
+
+
+

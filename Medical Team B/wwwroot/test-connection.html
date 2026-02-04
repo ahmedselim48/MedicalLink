@@ -1,0 +1,163 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Appointment Chat</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.7/signalr.min.js"></script>
+    <style>
+        body {
+            font-family: Arial;
+            margin: 20px;
+        }
+
+        #messages {
+            border: 1px solid #ccc;
+            padding: 10px;
+            height: 300px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+
+        input, button, select {
+            padding: 5px;
+            margin: 2px;
+        }
+
+        .message {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Appointment Chat</h2>
+
+    <div>
+        <label>Appointment:</label>
+        <select id="appointmentSelect"></select>
+        <label>Sender Name:</label>
+        <input type="text" id="senderId" placeholder="Your User ID">
+        <button onclick="joinRoom()">Join Chat</button>
+        <button onclick="leaveRoom()">Leave Chat</button>
+    </div>
+
+    <div id="messages"></div>
+
+    <input type="text" id="messageInput" placeholder="Type message" style="width:60%;">
+    <button onclick="sendMessage()">Send</button>
+    <br>
+    <input type="text" id="editMessageId" placeholder="Message ID to edit">
+    <input type="text" id="editMessageContent" placeholder="New content">
+    <button onclick="updateMessage()">Update</button>
+    <br>
+    <input type="text" id="deleteMessageId" placeholder="Message ID to delete">
+    <button onclick="deleteMessage()">Delete</button>
+
+    <script>
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/chathub") // رابط الـ Hub في السيرفر
+            .withAutomaticReconnect()
+            .build();
+
+        // استقبال الرسائل
+        connection.on("ReceiveMessage", (msg) => {
+            const div = document.getElementById("messages");
+            if (!msg.IsDeleted) {
+                div.innerHTML += `<div class="message"><strong>${msg.SenderId}</strong>: ${msg.Content} (ID: ${msg.MessageId})</div>`;
+            }
+            div.scrollTop = div.scrollHeight;
+        });
+
+        connection.on("MessageUpdated", (msg) => {
+            const div = document.getElementById("messages");
+            div.innerHTML += `<div class="message" style="color: blue;">Message updated: ID ${msg.MessageId} → ${msg.Content}</div>`;
+            div.scrollTop = div.scrollHeight;
+        });
+
+        connection.on("MessageDeleted", (msg) => {
+            const div = document.getElementById("messages");
+            div.innerHTML += `<div class="message" style="color: red;">Message deleted: ID ${msg.MessageId}</div>`;
+            div.scrollTop = div.scrollHeight;
+        });
+
+        connection.on("ReceiveSystemMessage", (msg) => {
+            const div = document.getElementById("messages");
+            div.innerHTML += `<div class="message" style="color: gray;">${msg}</div>`;
+            div.scrollTop = div.scrollHeight;
+        });
+
+        // Start connection
+        async function startConnection() {
+            try {
+                await connection.start();
+                console.log("Connected to ChatHub");
+                loadAppointments(); 
+            } catch (err) {
+                console.error(err);
+                setTimeout(startConnection, 2000);
+            }
+        }
+        startConnection();
+
+        function loadAppointments() {
+            const appointments = [
+                { id: 1, name: "Appointment 1" },
+                { id: 2, name: "Appointment 2" },
+                { id: 3, name: "Appointment 3" }
+            ];
+            const select = document.getElementById("appointmentSelect");
+            appointments.forEach(a => {
+                const option = document.createElement("option");
+                option.value = a.id;
+                option.text = a.name;
+                select.add(option);
+            });
+        }
+
+        // الانضمام لغرفة
+        async function joinRoom() {
+            const appointmentId = document.getElementById("appointmentSelect").value;
+            if (!appointmentId) return alert("Select an appointment");
+            await connection.invoke("JoinRoom", appointmentId);
+        }
+
+        // الخروج من الغرفة
+        async function leaveRoom() {
+            const appointmentId = document.getElementById("appointmentSelect").value;
+            if (!appointmentId) return alert("Select an appointment");
+            await connection.invoke("LeaveRoom", appointmentId);
+        }
+
+        // إرسال رسالة
+        async function sendMessage() {
+            const appointmentId = document.getElementById("appointmentSelect").value;
+            const senderId = document.getElementById("senderId").value;
+            const content = document.getElementById("messageInput").value;
+            if (!appointmentId || !senderId || !content) return alert("Fill all fields");
+            const messageId = Date.now(); // مؤقت ID
+            await connection.invoke("SendMessage", appointmentId, senderId, "receiverId", content);
+            document.getElementById("messageInput").value = "";
+        }
+
+        // تعديل رسالة
+        async function updateMessage() {
+            const appointmentId = document.getElementById("appointmentSelect").value;
+            const senderId = document.getElementById("senderId").value;
+            const messageId = document.getElementById("editMessageId").value;
+            const newContent = document.getElementById("editMessageContent").value;
+            if (!appointmentId || !senderId || !messageId || !newContent) return alert("Fill all fields");
+            await connection.invoke("UpdateMessage", appointmentId, messageId, newContent, senderId);
+        }
+
+        // حذف رسالة
+        async function deleteMessage() {
+            const appointmentId = document.getElementById("appointmentSelect").value;
+            const senderId = document.getElementById("senderId").value;
+            const messageId = document.getElementById("deleteMessageId").value;
+            if (!appointmentId || !senderId || !messageId) return alert("Fill all fields");
+            await connection.invoke("DeleteMessage", appointmentId, messageId, senderId);
+        }
+    </script>
+
+</body>
+</html>

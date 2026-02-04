@@ -14,12 +14,11 @@ public class MessageConfiguration : IEntityTypeConfiguration<Message>
         builder.Property(m => m.ChatRoomId)
             .IsRequired();
 
-        builder.Property(m => m.SenderUserId)
-            .IsRequired();
+       
 
         builder.HasOne<ApplicationUser>()
             .WithMany()
-            .HasForeignKey(m => m.SenderUserId)
+           
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.Property(m => m.Content)

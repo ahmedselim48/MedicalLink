@@ -9,5 +9,6 @@ namespace MedLink.Application.Interfaces.Persistence
         Task BeginTransactionAsync();
         Task CommitTransactionAsync();
         Task RollbackTransactionAsync();
+        IUserProfileRepository UserRepository { get; }
     }
 }

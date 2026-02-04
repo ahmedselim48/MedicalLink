@@ -4,6 +4,16 @@ using MedLink.Application.Interfaces.Services;
 using MedLink.Application.Mapping;
 using MedLink.Application.Services;
 using MedLink.Application.Validators;
+using Mapster;
+using MedLink.Application.Interfaces.Persistence;
+using MedLink.Application.Interfaces.Services;
+using MedLink.Application.Mapping;
+using MedLink.Application.Services;
+using MedLink.Domain.Interfaces.Repositories;
+using MedLink.Infrastructure.Persistence.Context;
+using MedLink.Infrastructure.Persistence.Repositories;
+
+
 
 namespace Medical_Team_B.Extensions
 {
@@ -34,16 +44,23 @@ namespace Medical_Team_B.Extensions
     .AddJsonOptions(options => {
        options.JsonSerializerOptions.Converters.Add(new NetTopologySuite.IO.Converters.GeoJsonConverterFactory());
     });
-            // Ён гбЁ Program.cs
+            // пњљпњљ пњљпњљпњљ Program.cs
             services.AddControllers()
                 .AddJsonOptions(options =>
                 {
-                    // «б”Ў— ѕе еж «ббн енќбн Џб«ё… «б№ Specialization ж«б№ Doctors  ўе— я«гб… Ён «б№ JSON
+                    // пњљпњљпњљпњљпњљ пњљпњљ пњљпњљ пњљпњљпњљпњљ пњљпњљпњљпњљпњљ пњљпњљпњљпњљпњљ пњљпњљпњљ Specialization пњљпњљпњљпњљ Doctors пњљпњљпњљпњљ пњљпњљпњљпњљпњљ пњљпњљ пњљпњљпњљ JSON
                     options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
 
-                    // «ќ н«— ≈÷«Ён: бж Џ«н“… «б№ JSON н—ћЏ »дЁ” √”г«Ѕ «б№ Properties “н г« ен Ён «б№ C#
+                    // пњљпњљпњљпњљпњљпњљ пњљпњљпњљпњљпњљ: пњљпњљ пњљпњљпњљпњљпњљ пњљпњљпњљ JSON пњљпњљпњљпњљ пњљпњљпњљпњљ пњљпњљпњљпњљпњљ пњљпњљпњљ Properties пњљпњљ пњљпњљ пњљпњљ пњљпњљ пњљпњљпњљ C#
                     // options.JsonSerializerOptions.PropertyNamingPolicy = null; 
                 });
+            services.AddScoped<IPresenceService, PresenceService>();
+            services.AddScoped<IMessageService, MessageService>();
+            services.AddScoped<IChatRoomService, ChatRoomService>();
+            services.AddScoped<IUserProfileRepository, UserProfileRepository>();
+            
+
+            TypeAdapterConfig.GlobalSettings.Scan(typeof(ChatMappingConfig).Assembly);
 
             services.AddAutoMapper(cfg =>
             {
