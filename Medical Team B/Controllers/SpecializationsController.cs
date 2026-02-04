@@ -2,10 +2,12 @@
 using MedLink.Application.Interfaces.Services;
 using MedLink.Application.Specifications;
 using MedLink.Domain.Entities.Medical;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Medical_Team_B.Controllers
 {
+    [Authorize(Roles ="Admin")]
     [Route("api/[controller]")]
     [ApiController]
     /// <summary>
@@ -65,7 +67,7 @@ namespace Medical_Team_B.Controllers
         /// </summary>
         /// <param name="id">The ID of the specialization.</param>
         [HttpGet("{id:int}", Name = "GetSpecializationById")]
-        public async Task<ActionResult<Specialization>> GetById(int id) // تغيير Guid لـ int
+        public async Task<ActionResult<Specialization>> GetById(int id) 
         {
             var specialization = await _specializationService.GetSpecializationByIdAsync(id);
             if (specialization == null)

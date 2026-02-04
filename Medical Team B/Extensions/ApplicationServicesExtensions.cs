@@ -1,3 +1,9 @@
+using FluentValidation;
+using FluentValidation.AspNetCore;
+using MedLink.Application.Interfaces.Services;
+using MedLink.Application.Mapping;
+using MedLink.Application.Services;
+using MedLink.Application.Validators;
 using Mapster;
 using MedLink.Application.Interfaces.Persistence;
 using MedLink.Application.Interfaces.Services;
@@ -27,19 +33,26 @@ namespace Medical_Team_B.Extensions
             services.AddScoped<IFAQ, FAQService>();
             services.AddScoped<ILanguageService, LanguageService>();
             services.AddScoped<IAboutService, AboutService>();
-            services.AddScoped<IAppointmentService, AppointmentService>();
-            services.AddScoped<IPaymentService, PaymentService>();
-            services.AddScoped<IDoctorAvailabilityService, DoctorAvailabilityService>();
-            services.AddScoped<IStripeWebhookService, StripeWebhookService>();
-            services.AddScoped<IStripeService, StripeService>();
-
-            // Repositories
-            services.AddScoped<IPaymentRepository, PaymentRepository>();
-
+            
+           services.AddFluentValidationAutoValidation();
+            services.AddValidatorsFromAssemblyContaining<DoctorValidator>();
+            services.AddValidatorsFromAssemblyContaining<SpecializationValidator>();
+            // Register the Profile Service
+            services.AddScoped<IProfileService, ProfileService>();
+            //   services.AddValidatorsFromAssemblyContaining<FAQValidator>();
+            services.AddControllers()
+    .AddJsonOptions(options => {
+       options.JsonSerializerOptions.Converters.Add(new NetTopologySuite.IO.Converters.GeoJsonConverterFactory());
+    });
+            // �� ��� Program.cs
             services.AddControllers()
                 .AddJsonOptions(options =>
                 {
-                    options.JsonSerializerOptions.Converters.Add(new NetTopologySuite.IO.Converters.GeoJsonConverterFactory());
+                    // ����� �� �� ���� ����� ����� ��� Specialization ���� Doctors ���� ����� �� ��� JSON
+                    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+
+                    // ������ �����: �� ����� ��� JSON ���� ���� ����� ��� Properties �� �� �� �� ��� C#
+                    // options.JsonSerializerOptions.PropertyNamingPolicy = null; 
                 });
             services.AddScoped<IPresenceService, PresenceService>();
             services.AddScoped<IMessageService, MessageService>();

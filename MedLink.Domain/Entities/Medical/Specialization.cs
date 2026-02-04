@@ -9,8 +9,5 @@ public class Specialization : BaseEntity
 
     public ICollection<Doctor> Doctors { get; set; } = new List<Doctor>();
 
-    public object Include(Func<object, object> value)
-    {
-        throw new NotImplementedException();
-    }
+   
 }

@@ -1,4 +1,5 @@
 using MedLink.Domain.Common;
+using MedLink.Domain.Entities.Content;
 using MedLink.Domain.Enums;
 
 namespace MedLink.Domain.Entities.User
@@ -13,8 +14,6 @@ namespace MedLink.Domain.Entities.User
 
         public Gender Gender { get; set; }
         public string? MedicalHistory { get; set; }
-
-        public string PreferredLanguage { get; set; } = "en";
-
+        public ICollection<FAQ> AnsweredFAQs { get; set; } = new HashSet<FAQ>();
     }
 }

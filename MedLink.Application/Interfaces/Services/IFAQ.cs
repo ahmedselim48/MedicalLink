@@ -9,6 +9,8 @@ namespace MedLink.Application.Interfaces.Services
         Task<IReadOnlyList<FAQ>> GetAllQuestionsAsync(ISpecification<FAQ>? spec = null);
         Task<FAQ> CreateQuestionAsync(FAQ Faq);
         Task UpdateQuestionAsync(FAQ Faq);
+        Task<bool> IsDisplayOrderUniqueAsync(int displayOrder, int? excludeId = null);
+        Task SubmitAnswerAsync(int faqId, string answer, int userProfileId);
         // Task DeleteQuestionAsync(Guid id);
     }
 }

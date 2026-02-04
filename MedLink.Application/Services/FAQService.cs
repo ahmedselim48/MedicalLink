@@ -13,12 +13,39 @@ namespace MedLink.Application.Services
         {
             _unitOfWork = unitOfWork;
         }
-        public async Task<FAQ> CreateQuestionAsync(FAQ q)
+        public async Task<FAQ> CreateQuestionAsync(FAQ faq)
+        {
+          
+            var repo = _unitOfWork.Repository<FAQ>();
+            var isOrderTaken = await repo.AnyAsync(f => f.DisplayOrder == faq.DisplayOrder);
+
+            if (isOrderTaken)
+            {
+               
+                throw new Exception("This display order is already assigned to another question.");
+            }
+
+           
+            await repo.AddAsync(faq);
+            await _unitOfWork.Complete();
+
+            return faq;
+        }
+
+        public async Task SubmitAnswerAsync(int faqId, string answer, int userProfileId)
         {
             var repo = _unitOfWork.Repository<FAQ>();
-            await repo.AddAsync(q);
+            var faq = await repo.GetByIdAsync(faqId);
+
+            if (faq == null) throw new Exception("Question not found");
+
+           
+            faq.Answer = answer;
+            faq.AnsweredByProfileId = userProfileId;
+            faq.IsActive = true; 
+
+             repo.Update(faq);
             await _unitOfWork.Complete();
-            return q;
         }
 
 
@@ -54,10 +81,24 @@ namespace MedLink.Application.Services
             throw new NotImplementedException();
         }
 
-        public async Task UpdateQuestionAsync(FAQ Faq)
+        public Task<bool> IsDisplayOrderUniqueAsync(int displayOrder, int? excludeId = null)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task UpdateQuestionAsync(FAQ faq)
         {
             var repo = _unitOfWork.Repository<FAQ>();
-            repo.Update(Faq);
+
+          
+            var isOrderTaken = await repo.AnyAsync(f => f.DisplayOrder == faq.DisplayOrder && f.Id != faq.Id);
+
+            if (isOrderTaken)
+            {
+                throw new Exception("This display order is already assigned to another question.");
+            }
+
+             repo.Update(faq);
             await _unitOfWork.Complete();
         }
     }

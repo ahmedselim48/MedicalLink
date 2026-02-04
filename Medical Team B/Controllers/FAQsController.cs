@@ -1,10 +1,17 @@
-﻿using MedLink.Application.Interfaces.Services;
+﻿using AutoMapper;
+using FluentValidation;
+using MedLink.Application.DTOs.Settings;
+using MedLink.Application.Interfaces.Services;
+using MedLink.Application.Services;
 using MedLink.Application.Specifications;
 using MedLink.Domain.Entities.Content;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace Medical_Team_B.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     /// <summary>
@@ -12,11 +19,12 @@ namespace Medical_Team_B.Controllers
     /// </summary>
     public class FAQsController : ControllerBase
     {
-        private readonly IFAQ _fAQ;
-
-        public FAQsController(IFAQ fAQ)
+        private readonly IFAQ _fAQ ;
+        private readonly IProfileService _userProfileService; 
+        public FAQsController(IFAQ fAQ, IProfileService profileService)
         {
-            _fAQ = fAQ;
+           _fAQ = fAQ;
+            _userProfileService = profileService;
         }
         /// <summary>
         /// Retrieves all FAQs.
@@ -46,42 +54,43 @@ namespace Medical_Team_B.Controllers
             return Ok(q);
         }
 
-
-        /// <summary>
-        /// Creates a new FAQ.
-        /// </summary>
-        /// <param name="q">The FAQ content.</param>
         [HttpPost]
-        public async Task<ActionResult<FAQ>> Create([FromBody] FAQ q)
+        public async Task<ActionResult<FAQ>> Create([FromBody] FAQ q, [FromServices] IValidator<FAQ> validator)
         {
-            var created = await _fAQ.CreateQuestionAsync(q);
+           
+            var validationResult = await validator.ValidateAsync(q);
+            if (!validationResult.IsValid)
+                return BadRequest(validationResult.Errors.Select(e => e.ErrorMessage));
 
-            return CreatedAtAction(nameof(GetById), new { id = q.Id }, q);
+            try
+            {
+                var created = await _fAQ.CreateQuestionAsync(q);
+                return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+            }
+            catch (Exception ex)
+            {
+               
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+        //   [Authorize(Roles ="User")]
+        [HttpPut("{id}/answer")]
+        public async Task<IActionResult> SubmitAnswer(int id, [FromBody] AnswerRequestDto request)
+        {
+            // 1. نجيب الـ UserId من الـ Token
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+            // 2. نجيب الـ UserProfile المربوط بالـ UserId ده
+            var profile = await _userProfileService.GetProfileByUserIdAsync(userId);
+
+            if (profile == null) return BadRequest("User profile not found.");
+
+            // 3. هنا بنستخدم profile.Id (لأن profileId مش متعرف لوحده)
+            await _fAQ.SubmitAnswerAsync(id, request.Answer, profile.Id);
+
+            return Ok(new { message = "Answer submitted successfully" });
         }
 
-
-
-        /// <summary>
-        /// Updates an existing FAQ.
-        /// </summary>
-        /// <param name="id">The ID of the FAQ.</param>
-        /// <param name="q">The updated FAQ content.</param>
-        [HttpPut("{id:int}")]
-        public async Task<IActionResult> Update(int id, [FromBody] FAQ q)
-        {
-            if (id != q.Id)
-                return BadRequest("ID mismatch");
-
-            await _fAQ.UpdateQuestionAsync(q);
-            return NoContent();
-        }
-
-        // DELETE
-        //[HttpDelete("{id:Guid}")]
-        //public async Task<IActionResult> Delete(Guid id) // تغيير Guid لـ int
-        //{
-        //    await _specializationService.DeleteSpecializationAsync(id);
-        //    return NoContent();
-        //}
     }
 }

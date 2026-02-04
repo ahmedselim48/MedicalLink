@@ -12,6 +12,10 @@ namespace Medical_Team_B.Controllers
     /// <summary>
     /// Manages doctor-related operations.
     /// </summary>
+    /// 
+    [Authorize(Roles = "Admin")]
+    [ApiController]
+    [Route("api/[controller]")]
     public class DoctorsController : BaseApiController
     {
         private readonly IDoctorService _doctorService;
