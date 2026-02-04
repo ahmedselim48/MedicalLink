@@ -13,6 +13,7 @@ namespace MedLink.Infrastructure.Persistence.UnitOfWork
         private Hashtable _repositories;
         private Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction _transaction;
 
+        private IUserProfileRepository _userRepository;
         public UnitOfWork(ApplicationDbContext dbContext)
         {
             _dbContext = dbContext;
@@ -32,6 +33,16 @@ namespace MedLink.Infrastructure.Persistence.UnitOfWork
 
             return _repositories[type] as GenericRepository<T>;
 
+        }
+        public IUserProfileRepository UserRepository
+        {
+            get
+            {
+                if (_userRepository == null)
+                    _userRepository = new UserProfileRepository(_dbContext);
+
+                return _userRepository;
+            }
         }
         public async Task<int> Complete()
         {

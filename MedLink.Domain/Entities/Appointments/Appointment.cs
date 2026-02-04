@@ -5,6 +5,13 @@ using MedLink.Domain.Enums;
 using MedLink.Domain.Identity;
 
 namespace MedLink.Domain.Entities.Appointments;
+using global::MedLink.Domain.Entities.Payments;
+using global::MedLink.Domain.Identity;
+using MedLink.Domain.Common;
+using MedLink.Domain.Entities.Medical;
+using MedLink.Domain.Enums;
+
+
 
 public class Appointment : BaseEntity
 {

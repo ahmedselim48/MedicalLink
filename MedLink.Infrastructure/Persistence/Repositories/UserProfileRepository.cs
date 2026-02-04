@@ -1,5 +1,6 @@
 using MedLink.Application.Interfaces.Persistence;
 using MedLink.Domain.Entities.User;
+using MedLink.Domain.Identity;
 using MedLink.Infrastructure.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,22 +15,48 @@ namespace MedLink.Infrastructure.Persistence.Repositories
             _context = context;
         }
 
-        public async Task<UserProfile?> GetByUserIdAsync(int userId)
+        public async Task<ApplicationUser?> GetByIdAsync(string id)
         {
-            return await _context.UserProfiles
-                .FirstOrDefaultAsync(x => x.Id == userId);
+            if (string.IsNullOrWhiteSpace(id))
+                return null;
+
+            return await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == id);
         }
 
-        public async Task AddAsync(UserProfile profile)
+        public async Task<IEnumerable<ApplicationUser>> GetByIdsAsync(IEnumerable<string> ids)
         {
-            await _context.UserProfiles.AddAsync(profile);
+            if (ids == null || !ids.Any())
+                return Enumerable.Empty<ApplicationUser>();
+
+            return await _context.Users
+                .AsNoTracking()
+                .Where(u => ids.Contains(u.Id))
+                .ToListAsync();
         }
 
-        public void Update(UserProfile profile)
+        public async Task<ApplicationUser?> GetByEmailAsync(string email)
         {
-            _context.UserProfiles.Update(profile);
+            if (string.IsNullOrWhiteSpace(email))
+                return null;
+
+            return await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Email == email);
+        }
+
+        public async Task<ApplicationUser?> GetByUserNameAsync(string userName)
+        {
+            if (string.IsNullOrWhiteSpace(userName))
+                return null;
+
+            return await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.UserName == userName);
         }
     }
+
 
 
 

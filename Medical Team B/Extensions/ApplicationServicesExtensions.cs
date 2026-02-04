@@ -1,10 +1,13 @@
+using Mapster;
+using MedLink.Application.Interfaces.Persistence;
 using MedLink.Application.Interfaces.Services;
 using MedLink.Application.Mapping;
 using MedLink.Application.Services;
 using MedLink.Domain.Interfaces.Repositories;
 using MedLink.Infrastructure.Persistence.Context;
 using MedLink.Infrastructure.Persistence.Repositories;
-using MedLink.Application.Interfaces.Repositories;
+
+
 
 namespace Medical_Team_B.Extensions
 {
@@ -38,6 +41,13 @@ namespace Medical_Team_B.Extensions
                 {
                     options.JsonSerializerOptions.Converters.Add(new NetTopologySuite.IO.Converters.GeoJsonConverterFactory());
                 });
+            services.AddScoped<IPresenceService, PresenceService>();
+            services.AddScoped<IMessageService, MessageService>();
+            services.AddScoped<IChatRoomService, ChatRoomService>();
+            services.AddScoped<IUserProfileRepository, UserProfileRepository>();
+            
+
+            TypeAdapterConfig.GlobalSettings.Scan(typeof(ChatMappingConfig).Assembly);
 
             services.AddAutoMapper(cfg =>
             {

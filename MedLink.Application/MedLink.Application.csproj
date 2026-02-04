@@ -8,6 +8,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.0.1" />
+    <PackageReference Include="MailKit" Version="4.14.1" />
+    <PackageReference Include="Mapster" Version="7.4.0" />
+    <PackageReference Include="Mapster.DependencyInjection" Version="1.0.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.0" />
+    <PackageReference Include="MimeKit" Version="4.14.0" />
+    <PackageReference Include="Twilio" Version="7.8.0" />
     <Compile Remove="Specifications\Doctors\**" />
     <EmbeddedResource Remove="Specifications\Doctors\**" />
     <None Remove="Specifications\Doctors\**" />
