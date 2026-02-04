@@ -1,13 +1,8 @@
 ﻿using MedLink.Domain.Common;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MedLink.Domain.Entities.Content
 {
-    public class Language:BaseEntity
+    public class Language : BaseEntity
     {
         public string Name { get; set; }
         public string Code { get; set; }

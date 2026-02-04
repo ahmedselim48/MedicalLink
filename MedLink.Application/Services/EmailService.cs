@@ -1,15 +1,15 @@
 ﻿using MailKit.Net.Smtp;
-using MedLink_Application.Common.Email;
-using MedLink_Application.DTOs.Identity;
-using MedLink_Application.Interfaces.Services;
+using MedLink.Application.Common.Email;
+using MedLink.Application.DTOs.Identity;
+using MedLink.Application.Interfaces.Services;
 using MimeKit;
 
 
-namespace MedLink_Application.Services
+namespace MedLink.Application.Services
 {
     public class EmailService : IEmailService
     {
-                private readonly EmailConfigurations _emailConfig;
+        private readonly EmailConfigurations _emailConfig;
 
         public EmailService(EmailConfigurations emailConfig)
         {
@@ -43,7 +43,7 @@ namespace MedLink_Application.Services
         {
             var title = subject;
             var buttonText = subject.Contains("Reset", StringComparison.OrdinalIgnoreCase) ? "Reset Password" : "Confirm Email";
-            
+
             return $@"
             <html>
                 <body style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;'>
@@ -92,6 +92,6 @@ namespace MedLink_Application.Services
             }
 
         }
-    
+
     }
 }

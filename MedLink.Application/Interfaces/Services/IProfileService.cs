@@ -14,4 +14,5 @@ namespace MedLink.Application.Interfaces.Services
         Task<UserProfile> GetProfileByUserIdAsync(string userId);
 
     }
+
 }

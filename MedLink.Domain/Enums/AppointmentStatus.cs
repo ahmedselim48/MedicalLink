@@ -2,9 +2,10 @@ namespace MedLink.Domain.Enums;
 
 public enum AppointmentStatus
 {
-    Pending,
-    Confirmed,
-    Completed,
-    Cancelled,
-    NoShow
+
+    Pending = 0,
+    Confirmed = 1,
+    Cancelled = 2,
+    Completed = 3,
+    NoShow = 4
 }

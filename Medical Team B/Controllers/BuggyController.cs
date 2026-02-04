@@ -4,6 +4,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Medical_Team_B.Controllers
 {
+    /// <summary>
+    /// Controller used for testing various error responses and edge cases.
+    /// </summary>
     public class BuggyController : BaseApiController
     {
         private readonly ApplicationDbContext _context;
@@ -13,7 +16,9 @@ namespace Medical_Team_B.Controllers
             _context = context;
         }
 
-
+        /// <summary>
+        /// Returns a 404 NotFound error.
+        /// </summary>
         [HttpGet("notfound")]
         public ActionResult GetNotFound()
         {
@@ -28,12 +33,19 @@ namespace Medical_Team_B.Controllers
         //    return Ok(usersToReturn);
         //}
 
+        /// <summary>
+        /// Returns a 400 BadRequest error.
+        /// </summary>
         [HttpGet("badrequest")]
         public ActionResult GetBadRequest()
         {
             return BadRequest(new ApiResponse(400));
         }
 
+        /// <summary>
+        /// Returns a 400 BadRequest error with a parameter.
+        /// </summary>
+        /// <param name="id">Test ID.</param>
         [HttpGet("badrequest/{id}")]
         public ActionResult GetBadRequest(int id)
         {

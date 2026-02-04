@@ -1,5 +1,5 @@
 
-namespace MedLink_Application.Common.Sms
+namespace MedLink.Application.Common.Sms
 {
     public class TwilioSettings
     {

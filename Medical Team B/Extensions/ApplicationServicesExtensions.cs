@@ -11,11 +11,16 @@ namespace Medical_Team_B.Extensions
     {
         public static IServiceCollection AddApplicationServices(this IServiceCollection services)
         {
+            // Core Services
             services.AddScoped<IDoctorService, DoctorService>();
-            services.AddScoped<ISpecializationService,SpecializationService>();
+            services.AddScoped<ISpecializationService, SpecializationService>();
             services.AddScoped<IFavoriteService, FavoriteService>();
-            services.AddScoped<IDoctorService, DoctorService>();
-            services.AddScoped<IFAQ,FAQService>();
+            services.AddScoped<IProfileDashboardService, ProfileDashboardService>();
+            services.AddScoped<IProfileService, ProfileService>();
+            services.AddScoped<IUserLanguageService, UserLanguageService>();
+            services.AddScoped<IProfileAppointmentService, ProfileAppointmentService>();
+            services.AddScoped<IImageService, ImageService>();
+            services.AddScoped<IFAQ, FAQService>();
             services.AddScoped<ILanguageService, LanguageService>();
             services.AddScoped<IAboutService, AboutService>();
             
@@ -40,7 +45,10 @@ namespace Medical_Team_B.Extensions
                     // options.JsonSerializerOptions.PropertyNamingPolicy = null; 
                 });
 
-            services.AddAutoMapper(typeof(MappingProfile));
+            services.AddAutoMapper(cfg =>
+            {
+                cfg.AddProfile<MappingProfile>();
+            });
 
             return services;
         }

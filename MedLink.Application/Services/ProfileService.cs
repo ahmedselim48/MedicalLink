@@ -16,6 +16,8 @@ namespace MedLink.Application.Services
         public ProfileService(IUnitOfWork unitOfWork)
         {
             _unitOfWork = unitOfWork;
+            _userManager = userManager;
+
         }
         public Task<UserProfileDashboardDto> GetMyDashboardAsync(string userId)
         {
@@ -23,13 +25,13 @@ namespace MedLink.Application.Services
         }
 
        public async Task<UserProfile> GetProfileByUserIdAsync(string userId)
-{
+        {
     // بنجيب كل البروفايلات ونختار اللي الـ UserId بتاعه مطابق
     var profiles = await _unitOfWork.Repository<UserProfile>().GetAllAsync();
-    
+
     var profile = profiles.FirstOrDefault(u => u.UserId == userId);
 
     return profile;
-}
+        }
     }
 }

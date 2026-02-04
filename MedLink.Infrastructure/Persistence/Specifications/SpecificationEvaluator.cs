@@ -1,5 +1,5 @@
-using MedLink.Domain.Common;
 using MedLink.Application.Interfaces.Specifications;
+using MedLink.Domain.Common;
 using Microsoft.EntityFrameworkCore;
 
 namespace MedLink.Infrastructure.Persistence.Specifications

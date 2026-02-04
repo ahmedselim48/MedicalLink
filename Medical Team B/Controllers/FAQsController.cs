@@ -14,6 +14,9 @@ namespace Medical_Team_B.Controllers
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
+    /// <summary>
+    /// Manages Frequently Asked Questions.
+    /// </summary>
     public class FAQsController : ControllerBase
     {
         private readonly IFAQ _fAQ ;
@@ -23,6 +26,9 @@ namespace Medical_Team_B.Controllers
            _fAQ = fAQ;
             _userProfileService = profileService;
         }
+        /// <summary>
+        /// Retrieves all FAQs.
+        /// </summary>
         [HttpGet]
         public async Task<ActionResult<IReadOnlyList<FAQ>>> GetAll()
         {
@@ -31,11 +37,15 @@ namespace Medical_Team_B.Controllers
             return Ok(result);
         }
 
-     
 
-       
+
+
+        /// <summary>
+        /// Retrieves an FAQ by ID.
+        /// </summary>
+        /// <param name="id">The ID of the FAQ.</param>
         [HttpGet("{id:int}", Name = "GetQuestionByIdAsync")]
-        public async Task<ActionResult<FAQ>> GetById(Guid id) 
+        public async Task<ActionResult<FAQ>> GetById(Guid id)
         {
             var q = await _fAQ.GetQuestionByIdAsync(id);
             if (q == null)

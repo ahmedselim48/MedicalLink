@@ -1,11 +1,11 @@
 using AutoMapper;
 using MedLink.Application.DTOs.Doctors;
+using MedLink.Application.Interfaces.Persistence;
 using MedLink.Application.Interfaces.Services;
 using MedLink.Application.Specifications.Users;
-using MedLink.Domain.Entities.User;
 using MedLink.Domain.Entities.Medical;
+using MedLink.Domain.Entities.User;
 using MedLink.Domain.Exceptions;
-using MedLink.Application.Interfaces.Persistence;
 
 namespace MedLink.Application.Services
 {
@@ -24,7 +24,7 @@ namespace MedLink.Application.Services
         {
             var doctorRepo = _unitOfWork.Repository<Doctor>();
             var doctor = await doctorRepo.GetByIdAsync(doctorId);
-            
+
             if (doctor == null)
                 throw new NotFoundException($"Doctor with ID {doctorId} not found.");
 

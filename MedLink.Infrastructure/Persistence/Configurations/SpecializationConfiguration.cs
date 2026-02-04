@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace MedLink.Infrastructure.Persistence.Configurations;
 
+
 public class SpecializationConfiguration : IEntityTypeConfiguration<Specialization>
 {
     public void Configure(EntityTypeBuilder<Specialization> builder)

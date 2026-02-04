@@ -1,12 +1,7 @@
+using MedLink.Application.Interfaces.Persistence;
 using MedLink.Domain.Entities.User;
 using MedLink.Infrastructure.Persistence.Context;
-using MedLink.Application.Interfaces.Persistence;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MedLink.Infrastructure.Persistence.Repositories
 {

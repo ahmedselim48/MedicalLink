@@ -1,11 +1,6 @@
-﻿using MedLink.Application.Interfaces.Specifications;
+﻿using MedLink.Application.DTOs.UserProfile;
+using MedLink.Application.Interfaces.Specifications;
 using MedLink.Domain.Entities.Content;
-using MedLink.Domain.Entities.Medical;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MedLink.Application.Interfaces.Services
 {
@@ -16,5 +11,6 @@ namespace MedLink.Application.Interfaces.Services
         Task<Language> AddLanguageAsync(Language language);
         Task UpdateLanguageAsync(Language language);
         Task DeleteLanguageAsync(int id);
+        IReadOnlyList<LanguageDto> GetAllLanguages();
     }
 }
