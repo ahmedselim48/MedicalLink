@@ -2,6 +2,7 @@ using MedLink.Domain.Common;
 using MedLink.Domain.Entities.Appointments;
 using MedLink.Domain.Entities.User;
 using MedLink.Domain.Enums;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using NetTopologySuite.Geometries;
 
 namespace MedLink.Domain.Entities.Medical;
@@ -21,8 +22,10 @@ public class Doctor : BaseEntity
     public string City { get; set; } = string.Empty;
     public Gender Gender { get; set; }
     public bool IsDeleted { get; set; }= false;
-    
+
     /// Geographic location of doctor's clinic (SRID 4326 = WGS84)
+    /// 
+    [ValidateNever]
     public Point Location { get; set; } = null!;
 
     public string? Address { get; set; } = string.Empty;

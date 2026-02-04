@@ -4,6 +4,7 @@ using MedLink.Application.Interfaces.Services;
 using MedLink.Application.Services;
 using MedLink.Application.Specifications;
 using MedLink.Domain.Entities.Medical;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Medical_Team_B.Controllers
@@ -11,6 +12,10 @@ namespace Medical_Team_B.Controllers
     /// <summary>
     /// Manages doctor-related operations.
     /// </summary>
+    /// 
+    [Authorize(Roles = "Admin")]
+    [ApiController]
+    [Route("api/[controller]")]
     public class DoctorsController : BaseApiController
     {
         private readonly IDoctorService _doctorService;

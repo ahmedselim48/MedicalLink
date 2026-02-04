@@ -4,6 +4,7 @@ using MedLink.Infrastructure.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 
@@ -12,9 +13,11 @@ using NetTopologySuite.Geometries;
 namespace MedLink.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260202192453_AddUserProfileToFAQRelation")]
+    partial class AddUserProfileToFAQRelation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -217,7 +220,10 @@ namespace MedLink.Infrastructure.Migrations
                         .HasMaxLength(2048)
                         .HasColumnType("nvarchar(2048)");
 
-                    b.Property<int?>("AnsweredByProfileId")
+                    b.Property<string>("AnsweredByProfileId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("AnsweredByProfileId1")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
@@ -236,7 +242,7 @@ namespace MedLink.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AnsweredByProfileId");
+                    b.HasIndex("AnsweredByProfileId1");
 
                     b.ToTable("FAQs");
                 });
@@ -775,7 +781,7 @@ namespace MedLink.Infrastructure.Migrations
                 {
                     b.HasOne("MedLink.Domain.Entities.User.UserProfile", "AnsweredByProfile")
                         .WithMany("AnsweredFAQs")
-                        .HasForeignKey("AnsweredByProfileId");
+                        .HasForeignKey("AnsweredByProfileId1");
 
                     b.Navigation("AnsweredByProfile");
                 });
