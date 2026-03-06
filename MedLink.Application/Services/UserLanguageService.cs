@@ -1,4 +1,4 @@
-﻿using MedLink.Application.DTOs.UserProfile;
+using MedLink.Application.DTOs.UserProfile;
 using MedLink.Application.Interfaces.Persistence;
 using MedLink.Application.Interfaces.Services;
 using MedLink.Domain.Entities.User;
@@ -16,8 +16,10 @@ namespace MedLink.Application.Services
 
         public async Task<LanguageResponsetDto> GetPreferredLanguageAsync(string userId)
         {
-            var profile = await _unitOfWork.Repository<UserProfile>()
+            var profiles = await _unitOfWork.Repository<UserProfile>()
                 .FindAsync(x => x.UserId == userId);
+
+            var profile = profiles.FirstOrDefault();
 
             if (profile == null)
                 throw new Exception("User profile not found");
@@ -36,8 +38,10 @@ namespace MedLink.Application.Services
             if (!allowedLanguages.Contains(dto.Language))
                 throw new Exception("Invalid language");
 
-            var profile = await _unitOfWork.Repository<UserProfile>()
+            var profiles = await _unitOfWork.Repository<UserProfile>()
                 .FindAsync(x => x.UserId == userId);
+
+            var profile = profiles.FirstOrDefault();
 
             if (profile == null)
                 throw new Exception("User profile not found");
