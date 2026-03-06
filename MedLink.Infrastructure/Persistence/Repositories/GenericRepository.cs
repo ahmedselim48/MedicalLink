@@ -75,6 +75,7 @@ namespace MedLink.Infrastructure.Persistence.Repositories
         public async Task<bool> AnyAsync(Expression<Func<T, bool>> predicate)
         {
             return await _dbContext.Set<T>().AnyAsync(predicate);
+        }
         public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate)
         {
             return await _dbContext.Set<T>()

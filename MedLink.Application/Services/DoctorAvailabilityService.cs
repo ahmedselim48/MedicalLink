@@ -173,8 +173,9 @@ namespace MedLink.Application.Services
         public async Task<int> GetDoctorIdByUserIdAsync(string userId)
         {
             // Use FindAsync with predicate directly to bypass Spec logic for debugging
-            var doctor = await _unitOfWork.Repository<Doctor>().FindAsync(d => d.UserId == userId);
-            
+            var doctors = await _unitOfWork.Repository<Doctor>().FindAsync(d => d.UserId == userId);
+            var doctor = doctors.FirstOrDefault();
+
             if (doctor == null) 
                 throw new KeyNotFoundException($"No doctor profile found linked to UserID: {userId}. Please ensure Doctor record exists and UserId column matches.");
                 

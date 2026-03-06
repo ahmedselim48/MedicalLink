@@ -37,22 +37,15 @@ namespace Medical_Team_B.Extensions
            services.AddFluentValidationAutoValidation();
             services.AddValidatorsFromAssemblyContaining<DoctorValidator>();
             services.AddValidatorsFromAssemblyContaining<SpecializationValidator>();
-            // Register the Profile Service
-            services.AddScoped<IProfileService, ProfileService>();
             //   services.AddValidatorsFromAssemblyContaining<FAQValidator>();
-            services.AddControllers()
-    .AddJsonOptions(options => {
-       options.JsonSerializerOptions.Converters.Add(new NetTopologySuite.IO.Converters.GeoJsonConverterFactory());
-    });
-            // �� ��� Program.cs
+            // Configure JSON options (ignore reference cycles)
             services.AddControllers()
                 .AddJsonOptions(options =>
                 {
                     // ����� �� �� ���� ����� ����� ��� Specialization ���� Doctors ���� ����� �� ��� JSON
                     options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
 
-                    // ������ �����: �� ����� ��� JSON ���� ���� ����� ��� Properties �� �� �� �� ��� C#
-                    // options.JsonSerializerOptions.PropertyNamingPolicy = null; 
+                    // options.JsonSerializerOptions.PropertyNamingPolicy = null;
                 });
             services.AddScoped<IPresenceService, PresenceService>();
             services.AddScoped<IMessageService, MessageService>();

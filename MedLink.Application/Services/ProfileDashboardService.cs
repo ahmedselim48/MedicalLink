@@ -1,4 +1,4 @@
-﻿using MedLink.Application.DTOs.UserProfile;
+using MedLink.Application.DTOs.UserProfile;
 using MedLink.Application.Interfaces.Persistence;
 using MedLink.Application.Interfaces.Services;
 using MedLink.Application.Specifications.Appointments;
@@ -22,9 +22,11 @@ public class ProfileDashboardService : IProfileDashboardService
 
     public async Task<UserProfileDashboardDto> GetMyDashboardAsync(string userId)
     {
-        var profile = await _unitOfWork
+        var profiles = await _unitOfWork
             .Repository<UserProfile>()
             .FindAsync(x => x.UserId == userId);
+
+        var profile = profiles.FirstOrDefault();
 
         if (profile == null)
             throw new KeyNotFoundException("User profile not found");
